@@ -22,9 +22,4 @@ document.addEventListener("DOMContentLoaded", () => {
     formulario.classList.add("hidden");
     inicio.classList.remove("hidden");
   });
-
-  document.getElementById("authForm").addEventListener("submit", (e) => {
-    e.preventDefault();
-    alert("Formulario enviado (sin conexión al backend aún)");
-  });
 });
