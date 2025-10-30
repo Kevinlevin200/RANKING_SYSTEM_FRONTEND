@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel de Administración - RestauRank</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 0;
+      margin: 0;
+    }
+
+    .admin-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .admin-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 25px 30px;
+      border-radius: 24px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+      margin-bottom: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .admin-header h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .tabs-container {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      padding: 14px 28px;
+      border-radius: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .tab-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .tab-btn.active {
+      background: white;
+      color: #667eea;
+      border-color: white;
+    }
+
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .admin-card {
+      background: white;
+      border-radius: 24px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+      padding: 30px;
+      margin-bottom: 24px;
+    }
+
+    .admin-card h2 {
+      color: #1e293b;
+      margin-bottom: 24px;
+      font-size: 1.6rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-group label {
+      font-weight: 600;
+      color: #475569;
+      font-size: 0.95rem;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      padding: 12px 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      background: #f8fafc;
+      font-family: inherit;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      background: white;
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-group textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      margin-top: 24px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    thead {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    th {
+      padding: 16px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    td {
+      padding: 16px;
+      border-bottom: 1px solid #e2e8f0;
+      color: #475569;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tbody tr {
+      transition: background 0.2s ease;
+    }
+
+    tbody tr:hover {
+      background: #f8fafc;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-small {
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-weight: 600;
+    }
+
+    .btn-edit {
+      background: #f59e0b;
+      color: white;
+    }
+
+    .btn-edit:hover {
+      background: #d97706;
+    }
+
+    .btn-delete {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-delete:hover {
+      background: #dc2626;
+    }
+
+    .btn-approve {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-approve:hover {
+      background: #059669;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .badge-pending {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .badge-approved {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 24px;
+      padding: 30px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+      animation: slideUp 0.3s ease;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .modal-header h3 {
+      color: #1e293b;
+      font-size: 1.5rem;
+      margin: 0;
+    }
+
+    .close-modal {
+      background: none;
+      border: none;
+      font-size: 1.8rem;
+      cursor: pointer;
+      color: #64748b;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s ease;
+    }
+
+    .close-modal:hover {
+      background: #f1f5f9;
+      color: #1e293b;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #64748b;
+    }
+
+    .empty-state-icon {
+      font-size: 4rem;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    @media (max-width: 768px) {
+      .admin-header {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .table-container {
+        font-size: 0.9rem;
+      }
+
+      th, td {
+        padding: 12px 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-container">
+    <!-- Header -->
+    <div class="admin-header">
+      <div>
+        <h1>🔧 Panel de Administración</h1>
+        <p style="margin: 8px 0 0 0; opacity: 0.9;">Bienvenido, <span id="adminNombre">Admin</span></p>
+      </div>
+      <button id="logoutBtn" class="btn secondary">Cerrar sesión</button>
+    </div>
+
+    <!-- Tabs de navegación -->
+    <div class="tabs-container">
+      <button class="tab-btn active" data-tab="categorias">📂 Categorías</button>
+      <button class="tab-btn" data-tab="restaurantes">🏪 Restaurantes</button>
+      <button class="tab-btn" data-tab="platos">🍽️ Platos</button>
+      <button class="tab-btn" data-tab="pendientes">⏳ Pendientes</button>
+    </div>
+
+    <!-- Tab: Categorías -->
+    <div id="categorias-tab" class="tab-content active">
+      <div class="admin-card">
+        <h2>📂 Gestión de Categorías</h2>
+        
+        <form id="categoriaForm">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="categoriaNombre">Nombre de la categoría *</label>
+              <input type="text" id="categoriaNombre" placeholder="Ej: Comida rápida" required />
+            </div>
+            <div class="form-group">
+              <label for="categoriaDescripcion">Descripción</label>
+              <input type="text" id="categoriaDescripcion" placeholder="Descripción breve" />
+            </div>
+          </div>
+          <button type="submit" class="btn">Crear Categoría</button>
+        </form>
+
+        <div class="table-container">
+          <table id="categoriasTable">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="categoriasTableBody">
+              <tr><td colspan="3" style="text-align: center;">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Restaurantes -->
+    <div id="restaurantes-tab" class="tab-content">
+      <div class="admin-card">
+        <h2>🏪 Gestión de Restaurantes</h2>
+        
+        <button class="btn" onclick="abrirModalRestaurante()">+ Nuevo Restaurante</button>
+
+        <div class="table-container">
+          <table id="restaurantesTable">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Categoría</th>
+                <th>Ubicación</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="restaurantesTableBody">
+              <tr><td colspan="5" style="text-align: center;">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Platos -->
+    <div id="platos-tab" class="tab-content">
+      <div class="admin-card">
+        <h2>🍽️ Gestión de Platos</h2>
+        
+        <button class="btn" onclick="abrirModalPlato()">+ Nuevo Plato</button>
+
+        <div class="table-container">
+          <table id="platosTable">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Restaurante</th>
+                <th>Precio</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="platosTableBody">
+              <tr><td colspan="5" style="text-align: center;">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Pendientes -->
+    <div id="pendientes-tab" class="tab-content">
+      <div class="admin-card">
+        <h2>⏳ Aprobaciones Pendientes</h2>
+        
+        <h3 style="color: #475569; margin-top: 30px;">Restaurantes Pendientes</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Categoría</th>
+                <th>Ubicación</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="restaurantesPendientesBody">
+              <tr><td colspan="4" style="text-align: center;">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="color: #475569; margin-top: 30px;">Platos Pendientes</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Restaurante</th>
+                <th>Precio</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="platosPendientesBody">
+              <tr><td colspan="4" style="text-align: center;">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Restaurante -->
+  <div id="modalRestaurante" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalRestauranteTitulo">Nuevo Restaurante</h3>
+        <button class="close-modal" onclick="cerrarModalRestaurante()">×</button>
+      </div>
+      
+      <form id="restauranteForm">
+        <input type="hidden" id="restauranteId" />
+        
+        <div class="form-group">
+          <label for="restauranteNombre">Nombre del restaurante *</label>
+          <input type="text" id="restauranteNombre" placeholder="Ej: La Casona" required />
+        </div>
+
+        <div class="form-group">
+          <label for="restauranteDescripcion">Descripción *</label>
+          <textarea id="restauranteDescripcion" placeholder="Describe el restaurante..." required></textarea>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="restauranteCategoria">Categoría *</label>
+            <select id="restauranteCategoria" required>
+              <option value="">Selecciona una categoría</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="restauranteUbicacion">Ubicación *</label>
+            <input type="text" id="restauranteUbicacion" placeholder="Ej: Calle 123 #45-67" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="restauranteImagen">URL de imagen (opcional)</label>
+          <input type="url" id="restauranteImagen" placeholder="https://ejemplo.com/imagen.jpg" />
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 24px;">
+          <button type="submit" class="btn" style="flex: 1;">Guardar</button>
+          <button type="button" class="btn secondary" style="flex: 1;" onclick="cerrarModalRestaurante()">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Plato -->
+  <div id="modalPlato" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalPlatoTitulo">Nuevo Plato</h3>
+        <button class="close-modal" onclick="cerrarModalPlato()">×</button>
+      </div>
+      
+      <form id="platoForm">
+        <input type="hidden" id="platoId" />
+        
+        <div class="form-group">
+          <label for="platoRestaurante">Restaurante *</label>
+          <select id="platoRestaurante" required>
+            <option value="">Selecciona un restaurante</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="platoNombre">Nombre del plato *</label>
+          <input type="text" id="platoNombre" placeholder="Ej: Bandeja Paisa" required />
+        </div>
+
+        <div class="form-group">
+          <label for="platoDescripcion">Descripción *</label>
+          <textarea id="platoDescripcion" placeholder="Describe el plato..." required></textarea>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="platoPrecio">Precio *</label>
+            <input type="number" id="platoPrecio" placeholder="0.00" min="0" step="0.01" required />
+          </div>
+
+          <div class="form-group">
+            <label for="platoCategoria">Categoría</label>
+            <input type="text" id="platoCategoria" placeholder="Ej: Plato fuerte" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="platoImagen">URL de imagen (opcional)</label>
+          <input type="url" id="platoImagen" placeholder="https://ejemplo.com/imagen.jpg" />
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 24px;">
+          <button type="submit" class="btn" style="flex: 1;">Guardar</button>
+          <button type="button" class="btn secondary" style="flex: 1;" onclick="cerrarModalPlato()">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="../js/admin.js"></script>
+</body>
+</html>
