@@ -1,4 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
+  console.log("main.js cargado - Configurando interfaz");
+
   const loginBtn = document.getElementById("loginBtn");
   const registerBtn = document.getElementById("registerBtn");
   const volverBtn = document.getElementById("volverBtn");
@@ -7,51 +9,66 @@ document.addEventListener("DOMContentLoaded", () => {
   const formTitle = document.getElementById("formTitle");
   const authForm = document.getElementById("authForm");
   const submitBtn = authForm?.querySelector('button[type="submit"]');
+  const usuarioInput = document.getElementById("usuario");
 
-  // Verificar si ya hay sesión activa
-  const token = localStorage.getItem("token");
-  if (token) {
-    verificarSesionActiva();
-  }
-
-  // Botón de login
+  // ===== BOTÓN LOGIN =====
   loginBtn?.addEventListener("click", () => {
+    console.log("Abriendo formulario de login");
+    
     formTitle.textContent = "Iniciar sesión";
     if (submitBtn) submitBtn.textContent = "Iniciar sesión";
     
-    // Limpiar campos
-    const emailInput = document.getElementById("email");
-    const passwordInput = document.getElementById("contraseña");
-    if (emailInput) emailInput.value = "";
-    if (passwordInput) passwordInput.value = "";
+    // Marcar como modo login
+    authForm.dataset.mode = "login";
     
+    // Ocultar campo usuario en login
+    if (usuarioInput) {
+      usuarioInput.style.display = "none";
+      usuarioInput.removeAttribute("required");
+    }
+    
+    // Limpiar campos
+    document.getElementById("email").value = "";
+    document.getElementById("contraseña").value = "";
+    if (usuarioInput) usuarioInput.value = "";
+    
+    // Mostrar formulario con animación
     formulario?.classList.remove("hidden");
     inicio?.classList.add("hidden");
-    
-    // Animación suave
     formulario.style.animation = 'slideUp 0.5s ease forwards';
   });
 
-  // Botón de registro
+  // ===== BOTÓN REGISTRO =====
   registerBtn?.addEventListener("click", () => {
+    console.log("Abriendo formulario de registro");
+    
     formTitle.textContent = "Registrarse";
     if (submitBtn) submitBtn.textContent = "Crear cuenta";
     
-    // Limpiar campos
-    const emailInput = document.getElementById("email");
-    const passwordInput = document.getElementById("contraseña");
-    if (emailInput) emailInput.value = "";
-    if (passwordInput) passwordInput.value = "";
+    // Marcar como modo registro
+    authForm.dataset.mode = "register";
     
+    // ⭐ Mostrar campo usuario en registro
+    if (usuarioInput) {
+      usuarioInput.style.display = "block";
+      usuarioInput.setAttribute("required", "true");
+    }
+    
+    // Limpiar campos
+    document.getElementById("email").value = "";
+    document.getElementById("contraseña").value = "";
+    if (usuarioInput) usuarioInput.value = "";
+    
+    // Mostrar formulario con animación
     formulario?.classList.remove("hidden");
     inicio?.classList.add("hidden");
-    
-    // Animación suave
     formulario.style.animation = 'slideUp 0.5s ease forwards';
   });
 
-  // Botón de volver
+  // ===== BOTÓN VOLVER =====
   volverBtn?.addEventListener("click", () => {
+    console.log("Volviendo al inicio");
+    
     formulario?.classList.add("hidden");
     inicio?.classList.remove("hidden");
     
@@ -59,14 +76,47 @@ document.addEventListener("DOMContentLoaded", () => {
     const alertas = document.querySelectorAll('.alerta');
     alertas.forEach(alerta => alerta.remove());
     
+    // Limpiar errores de campo
+    const erroresCampo = document.querySelectorAll('.error-campo');
+    erroresCampo.forEach(error => error.remove());
+    
+    // Resetear estilos de inputs
+    const inputs = authForm?.querySelectorAll('input');
+    inputs?.forEach(input => {
+      input.style.borderColor = '#e2e8f0';
+    });
+    
     // Animación suave
     inicio.style.animation = 'slideUp 0.5s ease forwards';
   });
 
-  // Validación en tiempo real
+  // ===== VALIDACIÓN EN TIEMPO REAL =====
   const emailInput = document.getElementById("email");
   const passwordInput = document.getElementById("contraseña");
 
+  // Validación de usuario
+  usuarioInput?.addEventListener("blur", () => {
+    if (usuarioInput.value) {
+      const usuario = usuarioInput.value.trim();
+      
+      if (usuario.length < 3) {
+        usuarioInput.style.borderColor = "#ef4444";
+        mostrarErrorCampo(usuarioInput, "Mínimo 3 caracteres");
+      } else if (!/^[a-z0-9]+$/i.test(usuario)) {
+        usuarioInput.style.borderColor = "#ef4444";
+        mostrarErrorCampo(usuarioInput, "Solo letras y números");
+      } else {
+        usuarioInput.style.borderColor = "#10b981";
+        ocultarErrorCampo(usuarioInput);
+      }
+    }
+  });
+
+  usuarioInput?.addEventListener("focus", () => {
+    ocultarErrorCampo(usuarioInput);
+  });
+
+  // Validación de email
   emailInput?.addEventListener("blur", () => {
     if (emailInput.value && !validarEmail(emailInput.value)) {
       emailInput.style.borderColor = "#ef4444";
@@ -77,67 +127,48 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  emailInput?.addEventListener("focus", () => {
+    ocultarErrorCampo(emailInput);
+  });
+
+  // Validación de contraseña
   passwordInput?.addEventListener("input", () => {
-    if (passwordInput.value.length > 0 && passwordInput.value.length < 6) {
+    const valor = passwordInput.value;
+    
+    if (valor.length > 0 && valor.length < 6) {
       passwordInput.style.borderColor = "#f59e0b";
       mostrarErrorCampo(passwordInput, "Mínimo 6 caracteres");
+    } else if (valor.length >= 6) {
+      passwordInput.style.borderColor = "#10b981";
+      ocultarErrorCampo(passwordInput);
     } else {
       passwordInput.style.borderColor = "#e2e8f0";
       ocultarErrorCampo(passwordInput);
     }
   });
 
-  // Enter para enviar formulario
+  passwordInput?.addEventListener("focus", () => {
+    if (passwordInput.value.length >= 6) {
+      ocultarErrorCampo(passwordInput);
+    }
+  });
+
+  // ===== ENTER PARA ENVIAR FORMULARIO =====
   authForm?.addEventListener("keypress", (e) => {
     if (e.key === "Enter" && !submitBtn?.disabled) {
+      e.preventDefault();
       authForm.dispatchEvent(new Event('submit'));
     }
   });
 });
 
-// Verificar sesión activa
-async function verificarSesionActiva() {
-  try {
-    const token = localStorage.getItem("token");
-    const response = await fetch("http://localhost:4000/api/v1/usuarios/verificar-sesion", {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
+// ===== FUNCIONES AUXILIARES =====
 
-    if (response.ok) {
-      const data = await response.json();
-      const tipo = data.usuario?.tipo || data.tipo;
-      
-      // Mostrar mensaje
-      mostrarMensaje(`Ya tienes una sesión activa. Redirigiendo...`);
-      
-      // Redirigir después de 1 segundo
-      setTimeout(() => {
-        if (tipo === "admin") {
-          window.location.href = "html/admin.html";
-        } else if (tipo === "usuario") {
-          window.location.href = "html/usuario.html";
-        }
-      }, 1000);
-    } else {
-      localStorage.removeItem("token");
-    }
-  } catch (error) {
-    console.error('Error verificando sesión:', error);
-    localStorage.removeItem("token");
-  }
-}
-
-// Validar email
 function validarEmail(email) {
   const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return regex.test(email);
 }
 
-// Mostrar error en campo específico
 function mostrarErrorCampo(input, mensaje) {
   ocultarErrorCampo(input);
   
@@ -148,14 +179,14 @@ function mostrarErrorCampo(input, mensaje) {
     font-size: 0.85rem;
     margin-top: -10px;
     margin-bottom: 10px;
-    animation: slideDown 0.2s ease;
+    animation: slideDownError 0.2s ease;
+    font-weight: 500;
   `;
-  errorDiv.textContent = mensaje;
+  errorDiv.textContent = `⚠️ ${mensaje}`;
   
   input.parentNode.insertBefore(errorDiv, input.nextSibling);
 }
 
-// Ocultar error de campo
 function ocultarErrorCampo(input) {
   const errorDiv = input.parentNode.querySelector('.error-campo');
   if (errorDiv) {
@@ -163,51 +194,46 @@ function ocultarErrorCampo(input) {
   }
 }
 
-// Mostrar mensaje general
-function mostrarMensaje(mensaje) {
-  const inicio = document.getElementById("inicio");
-  if (!inicio) return;
-  
-  const mensajeDiv = document.createElement('div');
-  mensajeDiv.style.cssText = `
-    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-    border-left: 5px solid #3b82f6;
-    color: #1e40af;
-    padding: 16px 20px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-    font-weight: 600;
-    animation: slideDown 0.3s ease;
-    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.2);
+// ===== ESTILOS ADICIONALES (usando IIFE para evitar conflictos) =====
+(function() {
+  const mainStyles = document.createElement('style');
+  mainStyles.id = 'main-styles';
+  mainStyles.textContent = `
+    @keyframes slideDownError {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    input:focus {
+      outline: none !important;
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1) !important;
+    }
+
+    input.valid {
+      border-color: #10b981 !important;
+    }
+
+    input.invalid {
+      border-color: #ef4444 !important;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .hidden {
+      display: none !important;
+    }
   `;
-  mensajeDiv.textContent = `ℹ️ ${mensaje}`;
-  
-  inicio.insertBefore(mensajeDiv, inicio.firstChild);
-}
+  document.head.appendChild(mainStyles);
+})();
 
-// Agregar estilos adicionales
-const style = document.createElement('style');
-style.textContent = `
-  @keyframes slideDown {
-    from {
-      opacity: 0;
-      transform: translateY(-10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  input:focus {
-    outline: none;
-    border-color: #667eea !important;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-  }
-
-  button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-`;
-document.head.appendChild(style);
+console.log("✅ main.js: Interfaz configurada correctamente");
