@@ -5,33 +5,95 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Panel del Usuario</title>
   <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/usuario.css">
 </head>
 <body>
-  <header class="header">
-    <h1>👤 Bienvenido, <span id="userNombre">Usuario</span></h1>
-    <button id="logoutBtn" class="btn secondary">Cerrar sesión</button>
-  </header>
-
-  <main class="main-content">
-    <section class="info-card">
-      <h2>📋 Tu perfil</h2>
-      <p><strong>Email:</strong> <span id="userEmail">cargando...</span></p>
-    </section>
-
-    <section class="info-card">
-      <h2>⭐ Restaurantes recomendados</h2>
-      <div id="restaurantesContainer">
-        <p>Cargando restaurantes...</p>
+  <div class="dashboard-wrapper">
+    <header class="dashboard-header">
+      <div class="header-content">
+        <div class="user-welcome">
+          <div class="user-avatar">
+            <span id="userInitial">U</span>
+          </div>
+          <div class="user-info">
+            <h1>Hola, <span id="userNombre">Usuario</span> 👋</h1>
+            <p class="user-subtitle">Gestiona tus restaurantes y reseñas</p>
+          </div>
+        </div>
+        <button id="logoutBtn" class="btn-logout">
+          <span>🚪</span> Cerrar sesión
+        </button>
       </div>
-    </section>
+    </header>
 
-    <section class="info-card">
-      <h2>📝 Tus reseñas</h2>
-      <div id="reseñasContainer">
-        <p>Cargando reseñas...</p>
+    <main class="dashboard-main">
+      <!-- Stats Cards -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">⭐</div>
+          <div class="stat-info">
+            <h3 id="totalRestaurantes">0</h3>
+            <p>Restaurantes</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">📝</div>
+          <div class="stat-info">
+            <h3 id="totalReseñas">0</h3>
+            <p>Reseñas</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">👤</div>
+          <div class="stat-info">
+            <h3 id="userEmail">cargando...</h3>
+            <p>Tu cuenta</p>
+          </div>
+        </div>
       </div>
-    </section>
-  </main>
+
+      <!-- Search and Filter Section -->
+      <div class="search-section">
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="Buscar restaurantes o reseñas...">
+        </div>
+        <div class="filter-section">
+          <button class="filter-btn active" data-filter="all">Todos</button>
+          <button class="filter-btn" data-filter="restaurantes">Restaurantes</button>
+          <button class="filter-btn" data-filter="reseñas">Reseñas</button>
+        </div>
+      </div>
+
+      <!-- Restaurantes Section -->
+      <section class="content-section" id="restaurantesSection">
+        <div class="section-header">
+          <h2>⭐ Restaurantes Recomendados</h2>
+          <button class="btn-add">+ Agregar Restaurante</button>
+        </div>
+        <div id="restaurantesContainer" class="cards-grid">
+          <div class="loading-state">
+            <div class="loading"></div>
+            <p>Cargando restaurantes...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Reseñas Section -->
+      <section class="content-section" id="reseñasSection">
+        <div class="section-header">
+          <h2>📝 Tus Reseñas</h2>
+          <button class="btn-add">+ Nueva Reseña</button>
+        </div>
+        <div id="reseñasContainer" class="cards-grid">
+          <div class="loading-state">
+            <div class="loading"></div>
+            <p>Cargando reseñas...</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
 
   <script src="../js/usuario.js"></script>
 </body>
