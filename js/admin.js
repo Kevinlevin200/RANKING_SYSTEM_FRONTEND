@@ -4,56 +4,108 @@ let adminId = null;
 let editandoRestaurante = false;
 let editandoPlato = false;
 
+console.log("admin.js cargado, token:", token);
+
 // ===== INICIALIZACIÓN =====
 document.addEventListener('DOMContentLoaded', async () => {
+  console.log("DOM Cargado en admin.js");
+  
   if (!token) {
+    console.error("No hay token, redirigiendo al login");
     alert('No has iniciado sesión');
     window.location.href = "../index.html";
     return;
   }
 
   try {
-    await verificarSesionAdmin();
-    await cargarCategorias();
-    await cargarRestaurantes();
-    await cargarPlatos();
-    await cargarPendientes();
+    console.log("Verificando sesión de admin...");
+    const usuario = await verificarSesionAdmin();
+    
+    if (!usuario) {
+      console.error("No es admin, redirigiendo");
+      alert('Acceso denegado. Solo administradores.');
+      localStorage.clear();
+      window.location.href = "../index.html";
+      return;
+    }
+
+    console.log("Usuario admin verificado:", usuario);
+    
+    // Cargar datos
+    await Promise.all([
+      cargarCategorias(),
+      cargarRestaurantes(),
+      cargarPlatos(),
+      cargarPendientes()
+    ]);
+    
     configurarTabs();
     configurarFormularios();
+    
+    console.log("Admin panel completamente cargado");
   } catch (error) {
     console.error('Error en inicialización:', error);
+    alert('Error al cargar el panel de administración');
   }
 });
 
 // ===== VERIFICACIÓN DE SESIÓN =====
 async function verificarSesionAdmin() {
   try {
+    console.log("🔍 Verificando sesión con token:", token ? "✅" : "❌");
+    
     const res = await fetch(`${API_BASE}/usuarios/verificar-sesion`, {
       method: 'GET',
       headers: { 
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
-      },
+      }
     });
 
-    if (!res.ok) throw new Error('Sesión inválida');
+    console.log("📥 Respuesta verificación:", res.status);
 
-    const data = await res.json();
-    
-    // Verificar que sea admin
-    if (data.usuario.tipo !== 'admin') {
-      alert('Acceso denegado. Solo administradores.');
-      window.location.href = "../index.html";
-      return;
+    if (!res.ok) {
+      console.error("❌ Sesión inválida, status:", res.status);
+      return null;
     }
 
-    document.getElementById("adminNombre").textContent = data.usuario.usuario || data.usuario.nombre || 'Admin';
-    adminId = data.usuario._id || data.usuario.id;
+    const data = await res.json();
+    console.log("📦 Datos completos recibidos:", data);
+    console.log("📦 Estructura data.usuario:", data.usuario);
+    
+    // ⭐ OBTENER EL TIPO DE USUARIO DE FORMA MÁS FLEXIBLE
+    const usuario = data.usuario || data;
+    const tipo = usuario.tipo;
+    
+    console.log("🎯 Usuario extraído:", usuario);
+    console.log("🎯 Tipo detectado:", tipo);
+    console.log("🎯 Email:", usuario.email);
+    console.log("🎯 Usuario nombre:", usuario.usuario);
+    
+    // ⭐ VALIDAR TIPO (admin o empleado)
+    if (tipo !== 'admin') {
+      console.error("❌ Acceso denegado - Tipo de usuario:", tipo);
+      console.error("❌ Se requiere tipo: 'admin'");
+      return null;
+    }
+
+    console.log("✅ Acceso permitido - Tipo:", tipo);
+
+    // Actualizar UI
+    const nombreElemento = document.getElementById("adminNombre");
+    if (nombreElemento) {
+      nombreElemento.textContent = usuario.usuario || usuario.nombre || 'Admin';
+    }
+    
+    adminId = usuario._id || usuario.id;
+    localStorage.setItem("userId", adminId);
+    localStorage.setItem("userTipo", tipo);
+
+    return usuario;
   } catch (error) {
-    console.error('Error en verificación:', error);
-    alert("Sesión inválida. Redirigiendo...");
-    localStorage.removeItem("token");
-    window.location.href = "../index.html";
+    console.error('❌ Error en verificación:', error);
+    console.error('❌ Stack:', error.stack);
+    return null;
   }
 }
 
@@ -63,14 +115,12 @@ function configurarTabs() {
   
   tabButtons.forEach(btn => {
     btn.addEventListener('click', () => {
-      // Remover active de todos
       tabButtons.forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
       
-      // Activar el seleccionado
       btn.classList.add('active');
       const tabId = btn.getAttribute('data-tab');
-      document.getElementById(`${tabId}-tab`).classList.add('active');
+      document.getElementById(`${tabId}-tab`)?.classList.add('active');
     });
   });
 }
@@ -78,6 +128,8 @@ function configurarTabs() {
 // ===== CATEGORÍAS =====
 async function cargarCategorias() {
   try {
+    console.log("Cargando categorías...");
+    
     const res = await fetch(`${API_BASE}/categoria/`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -85,7 +137,11 @@ async function cargarCategorias() {
     if (!res.ok) throw new Error('Error al cargar categorías');
 
     const categorias = await res.json();
+    console.log("Categorías cargadas:", categorias);
+    
     const tbody = document.getElementById('categoriasTableBody');
+    if (!tbody) return;
+    
     tbody.innerHTML = '';
 
     if (!categorias || categorias.length === 0) {
@@ -100,7 +156,7 @@ async function cargarCategorias() {
         <td>${cat.descripcion || 'Sin descripción'}</td>
         <td>
           <div class="action-buttons">
-            <button class="btn-small btn-edit" onclick="editarCategoria('${cat._id}', '${cat.nombre}', '${cat.descripcion || ''}')">✏️ Editar</button>
+            <button class="btn-small btn-edit" onclick="editarCategoria('${cat._id}', '${cat.nombre.replace(/'/g, "\\'")}')">✏️ Editar</button>
             <button class="btn-small btn-delete" onclick="eliminarCategoria('${cat._id}')">🗑️ Eliminar</button>
           </div>
         </td>
@@ -108,7 +164,6 @@ async function cargarCategorias() {
       tbody.appendChild(tr);
     });
 
-    // Actualizar select de categorías en modal de restaurantes
     actualizarSelectCategorias(categorias);
   } catch (error) {
     console.error('Error al cargar categorías:', error);
@@ -118,8 +173,9 @@ async function cargarCategorias() {
 
 function actualizarSelectCategorias(categorias) {
   const select = document.getElementById('restauranteCategoria');
-  select.innerHTML = '<option value="">Selecciona una categoría</option>';
+  if (!select) return;
   
+  select.innerHTML = '<option value="">Selecciona una categoría</option>';
   categorias.forEach(cat => {
     const option = document.createElement('option');
     option.value = cat.nombre;
@@ -131,8 +187,12 @@ function actualizarSelectCategorias(categorias) {
 async function crearCategoria(e) {
   e.preventDefault();
   
-  const nombre = document.getElementById('categoriaNombre').value.trim();
-  const descripcion = document.getElementById('categoriaDescripcion').value.trim();
+  const nombre = document.getElementById('categoriaNombre')?.value.trim();
+
+  if (!nombre) {
+    mostrarNotificacion('El nombre es obligatorio', 'error');
+    return;
+  }
 
   try {
     const res = await fetch(`${API_BASE}/categoria/registrar`, {
@@ -141,7 +201,7 @@ async function crearCategoria(e) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ nombre, descripcion })
+      body: JSON.stringify({ nombre })
     });
 
     const data = await res.json();
@@ -149,7 +209,7 @@ async function crearCategoria(e) {
     if (!res.ok) throw new Error(data.error || 'Error al crear categoría');
 
     mostrarNotificacion('✅ Categoría creada exitosamente', 'success');
-    document.getElementById('categoriaForm').reset();
+    document.getElementById('categoriaForm')?.reset();
     await cargarCategorias();
   } catch (error) {
     console.error('Error:', error);
@@ -157,11 +217,9 @@ async function crearCategoria(e) {
   }
 }
 
-async function editarCategoria(id, nombreActual, descripcionActual) {
+async function editarCategoria(id, nombreActual) {
   const nuevoNombre = prompt('Nuevo nombre:', nombreActual);
-  if (!nuevoNombre) return;
-
-  const nuevaDescripcion = prompt('Nueva descripción:', descripcionActual);
+  if (!nuevoNombre || nuevoNombre === nombreActual) return;
 
   try {
     const res = await fetch(`${API_BASE}/categoria/${id}`, {
@@ -170,33 +228,27 @@ async function editarCategoria(id, nombreActual, descripcionActual) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ 
-        nombre: nuevoNombre, 
-        descripcion: nuevaDescripcion 
-      })
+      body: JSON.stringify({ nombre: nuevoNombre })
     });
 
     const data = await res.json();
 
-    if (!res.ok) throw new Error(data.error || 'Error al editar categoría');
+    if (!res.ok) throw new Error(data.error || 'Error al editar');
 
     mostrarNotificacion('✅ Categoría actualizada', 'success');
     await cargarCategorias();
   } catch (error) {
-    console.error('Error:', error);
     mostrarNotificacion(error.message, 'error');
   }
 }
 
 async function eliminarCategoria(id) {
-  if (!confirm('¿Eliminar esta categoría? Esto puede afectar restaurantes asociados.')) return;
+  if (!confirm('¿Eliminar esta categoría?')) return;
 
   try {
     const res = await fetch(`${API_BASE}/categoria/${id}`, {
       method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      headers: { 'Authorization': `Bearer ${token}` }
     });
 
     const data = await res.json();
@@ -206,7 +258,6 @@ async function eliminarCategoria(id) {
     mostrarNotificacion('✅ Categoría eliminada', 'success');
     await cargarCategorias();
   } catch (error) {
-    console.error('Error:', error);
     mostrarNotificacion(error.message, 'error');
   }
 }
@@ -214,6 +265,8 @@ async function eliminarCategoria(id) {
 // ===== RESTAURANTES =====
 async function cargarRestaurantes() {
   try {
+    console.log("Cargando restaurantes...");
+    
     const res = await fetch(`${API_BASE}/restaurantes/`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -221,11 +274,15 @@ async function cargarRestaurantes() {
     if (!res.ok) throw new Error('Error al cargar restaurantes');
 
     const restaurantes = await res.json();
+    console.log("Restaurantes cargados:", restaurantes);
+    
     const tbody = document.getElementById('restaurantesTableBody');
+    if (!tbody) return;
+    
     tbody.innerHTML = '';
 
     if (!restaurantes || restaurantes.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #64748b;">No hay restaurantes registrados</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No hay restaurantes</td></tr>';
       return;
     }
 
@@ -234,7 +291,7 @@ async function cargarRestaurantes() {
       tr.innerHTML = `
         <td><strong>${rest.nombre}</strong></td>
         <td>${rest.categoria || 'Sin categoría'}</td>
-        <td>${rest.ubicacion || 'No especificada'}</td>
+        <td>${rest.ubicacion || 'N/A'}</td>
         <td>
           <span class="badge ${rest.aprobado ? 'badge-approved' : 'badge-pending'}">
             ${rest.aprobado ? '✓ Aprobado' : '⏳ Pendiente'}
@@ -243,7 +300,7 @@ async function cargarRestaurantes() {
         <td>
           <div class="action-buttons">
             ${!rest.aprobado ? `<button class="btn-small btn-approve" onclick="aprobarRestaurante('${rest._id}')">✓ Aprobar</button>` : ''}
-            <button class="btn-small btn-edit" onclick="editarRestaurante('${rest._id}')">✏️ Editar</button>
+            <button class="btn-small btn-edit" onclick="editarRestaurante('${rest._id}')">✏️</button>
             <button class="btn-small btn-delete" onclick="eliminarRestaurante('${rest._id}')">🗑️</button>
           </div>
         </td>
@@ -251,7 +308,6 @@ async function cargarRestaurantes() {
       tbody.appendChild(tr);
     });
 
-    // Actualizar select de restaurantes en modal de platos
     actualizarSelectRestaurantes(restaurantes);
   } catch (error) {
     console.error('Error al cargar restaurantes:', error);
@@ -261,8 +317,9 @@ async function cargarRestaurantes() {
 
 function actualizarSelectRestaurantes(restaurantes) {
   const select = document.getElementById('platoRestaurante');
-  select.innerHTML = '<option value="">Selecciona un restaurante</option>';
+  if (!select) return;
   
+  select.innerHTML = '<option value="">Selecciona un restaurante</option>';
   restaurantes.forEach(rest => {
     const option = document.createElement('option');
     option.value = rest._id;
@@ -274,14 +331,13 @@ function actualizarSelectRestaurantes(restaurantes) {
 function abrirModalRestaurante() {
   editandoRestaurante = false;
   document.getElementById('modalRestauranteTitulo').textContent = 'Nuevo Restaurante';
-  document.getElementById('restauranteForm').reset();
+  document.getElementById('restauranteForm')?.reset();
   document.getElementById('restauranteId').value = '';
-  document.getElementById('modalRestaurante').classList.add('active');
+  document.getElementById('modalRestaurante')?.classList.add('active');
 }
 
 function cerrarModalRestaurante() {
-  document.getElementById('modalRestaurante').classList.remove('active');
-  document.getElementById('restauranteForm').reset();
+  document.getElementById('modalRestaurante')?.classList.remove('active');
 }
 
 async function editarRestaurante(id) {
@@ -303,24 +359,23 @@ async function editarRestaurante(id) {
     document.getElementById('restauranteUbicacion').value = rest.ubicacion || '';
     document.getElementById('restauranteImagen').value = rest.imagen || '';
     
-    document.getElementById('modalRestaurante').classList.add('active');
+    document.getElementById('modalRestaurante')?.classList.add('active');
   } catch (error) {
-    console.error('Error:', error);
-    mostrarNotificacion('Error al cargar datos del restaurante', 'error');
+    mostrarNotificacion('Error al cargar restaurante', 'error');
   }
 }
 
 async function guardarRestaurante(e) {
   e.preventDefault();
 
-  const id = document.getElementById('restauranteId').value;
+  const id = document.getElementById('restauranteId')?.value;
   const datos = {
-    nombre: document.getElementById('restauranteNombre').value.trim(),
-    descripcion: document.getElementById('restauranteDescripcion').value.trim(),
-    categoria: document.getElementById('restauranteCategoria').value,
-    ubicacion: document.getElementById('restauranteUbicacion').value.trim(),
-    imagen: document.getElementById('restauranteImagen').value.trim(),
-    aprobado: true // Admin crea aprobado automáticamente
+    nombre: document.getElementById('restauranteNombre')?.value.trim(),
+    descripcion: document.getElementById('restauranteDescripcion')?.value.trim(),
+    categoria: document.getElementById('restauranteCategoria')?.value,
+    ubicacion: document.getElementById('restauranteUbicacion')?.value.trim(),
+    imagen: document.getElementById('restauranteImagen')?.value.trim(),
+    aprobado: true
   };
 
   try {
@@ -341,13 +396,12 @@ async function guardarRestaurante(e) {
 
     const data = await res.json();
 
-    if (!res.ok) throw new Error(data.error || 'Error al guardar restaurante');
+    if (!res.ok) throw new Error(data.error || 'Error al guardar');
 
-    mostrarNotificacion(`✅ Restaurante ${editandoRestaurante ? 'actualizado' : 'creado'} exitosamente`, 'success');
+    mostrarNotificacion(`✅ Restaurante ${editandoRestaurante ? 'actualizado' : 'creado'}`, 'success');
     cerrarModalRestaurante();
     await cargarRestaurantes();
   } catch (error) {
-    console.error('Error:', error);
     mostrarNotificacion(error.message, 'error');
   }
 }
@@ -363,21 +417,18 @@ async function aprobarRestaurante(id) {
       body: JSON.stringify({ aprobado: true })
     });
 
-    const data = await res.json();
-
-    if (!res.ok) throw new Error(data.error || 'Error al aprobar');
+    if (!res.ok) throw new Error('Error al aprobar');
 
     mostrarNotificacion('✅ Restaurante aprobado', 'success');
     await cargarRestaurantes();
     await cargarPendientes();
   } catch (error) {
-    console.error('Error:', error);
     mostrarNotificacion(error.message, 'error');
   }
 }
 
 async function eliminarRestaurante(id) {
-  if (!confirm('¿Eliminar este restaurante? Se eliminarán todos sus platos.')) return;
+  if (!confirm('¿Eliminar este restaurante?')) return;
 
   try {
     const res = await fetch(`${API_BASE}/restaurantes/${id}`, {
@@ -385,14 +436,11 @@ async function eliminarRestaurante(id) {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    const data = await res.json();
-
-    if (!res.ok) throw new Error(data.error || 'Error al eliminar');
+    if (!res.ok) throw new Error('Error al eliminar');
 
     mostrarNotificacion('✅ Restaurante eliminado', 'success');
     await cargarRestaurantes();
   } catch (error) {
-    console.error('Error:', error);
     mostrarNotificacion(error.message, 'error');
   }
 }
@@ -400,6 +448,8 @@ async function eliminarRestaurante(id) {
 // ===== PLATOS =====
 async function cargarPlatos() {
   try {
+    console.log("Cargando platos...");
+    
     const res = await fetch(`${API_BASE}/restaurantes/`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -408,11 +458,11 @@ async function cargarPlatos() {
 
     const restaurantes = await res.json();
     const tbody = document.getElementById('platosTableBody');
+    if (!tbody) return;
+    
     tbody.innerHTML = '';
-
     let totalPlatos = 0;
 
-    // Cargar platos de cada restaurante
     for (const rest of restaurantes) {
       try {
         const platosRes = await fetch(`${API_BASE}/platos/restaurante/${rest._id}`, {
@@ -428,16 +478,11 @@ async function cargarPlatos() {
             tr.innerHTML = `
               <td><strong>${plato.nombre}</strong></td>
               <td>${rest.nombre}</td>
-              <td>$${plato.precio?.toFixed(2) || '0.00'}</td>
-              <td>
-                <span class="badge ${plato.aprobado ? 'badge-approved' : 'badge-pending'}">
-                  ${plato.aprobado ? '✓ Aprobado' : '⏳ Pendiente'}
-                </span>
-              </td>
+              <td>${plato.categoria || 'N/A'}</td>
+              <td><span class="badge badge-approved">✓ Activo</span></td>
               <td>
                 <div class="action-buttons">
-                  ${!plato.aprobado ? `<button class="btn-small btn-approve" onclick="aprobarPlato('${plato._id}')">✓ Aprobar</button>` : ''}
-                  <button class="btn-small btn-edit" onclick="editarPlato('${plato._id}')">✏️ Editar</button>
+                  <button class="btn-small btn-edit" onclick="editarPlato('${plato._id}')">✏️</button>
                   <button class="btn-small btn-delete" onclick="eliminarPlato('${plato._id}')">🗑️</button>
                 </div>
               </td>
@@ -451,25 +496,23 @@ async function cargarPlatos() {
     }
 
     if (totalPlatos === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #64748b;">No hay platos registrados</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No hay platos registrados</td></tr>';
     }
   } catch (error) {
     console.error('Error al cargar platos:', error);
-    mostrarNotificacion('Error al cargar platos', 'error');
   }
 }
 
 function abrirModalPlato() {
   editandoPlato = false;
   document.getElementById('modalPlatoTitulo').textContent = 'Nuevo Plato';
-  document.getElementById('platoForm').reset();
+  document.getElementById('platoForm')?.reset();
   document.getElementById('platoId').value = '';
-  document.getElementById('modalPlato').classList.add('active');
+  document.getElementById('modalPlato')?.classList.add('active');
 }
 
 function cerrarModalPlato() {
-  document.getElementById('modalPlato').classList.remove('active');
-  document.getElementById('platoForm').reset();
+  document.getElementById('modalPlato')?.classList.remove('active');
 }
 
 async function editarPlato(id) {
@@ -488,30 +531,32 @@ async function editarPlato(id) {
     document.getElementById('platoRestaurante').value = plato.restauranteId;
     document.getElementById('platoNombre').value = plato.nombre;
     document.getElementById('platoDescripcion').value = plato.descripcion || '';
-    document.getElementById('platoPrecio').value = plato.precio || 0;
     document.getElementById('platoCategoria').value = plato.categoria || '';
     document.getElementById('platoImagen').value = plato.imagen || '';
     
-    document.getElementById('modalPlato').classList.add('active');
+    document.getElementById('modalPlato')?.classList.add('active');
   } catch (error) {
-    console.error('Error:', error);
-    mostrarNotificacion('Error al cargar datos del plato', 'error');
+    mostrarNotificacion('Error al cargar plato', 'error');
   }
 }
 
 async function guardarPlato(e) {
   e.preventDefault();
 
-  const id = document.getElementById('platoId').value;
+  const id = document.getElementById('platoId')?.value;
   const datos = {
-    restauranteId: document.getElementById('platoRestaurante').value,
-    nombre: document.getElementById('platoNombre').value.trim(),
-    descripcion: document.getElementById('platoDescripcion').value.trim(),
-    precio: parseFloat(document.getElementById('platoPrecio').value),
-    categoria: document.getElementById('platoCategoria').value.trim(),
-    imagen: document.getElementById('platoImagen').value.trim(),
-    aprobado: true // Admin crea aprobado automáticamente
+    restauranteId: document.getElementById('platoRestaurante')?.value,
+    nombre: document.getElementById('platoNombre')?.value.trim(),
+    descripcion: document.getElementById('platoDescripcion')?.value.trim(),
+    categoria: document.getElementById('platoCategoria')?.value.trim(),
+    ubicacion: "Ubicación del restaurante",
+    imagen: document.getElementById('platoImagen')?.value.trim() || null
   };
+
+  if (!datos.restauranteId || !datos.nombre || !datos.descripcion || !datos.categoria) {
+    mostrarNotificacion('Completa todos los campos obligatorios', 'error');
+    return;
+  }
 
   try {
     const url = editandoPlato 
@@ -531,37 +576,12 @@ async function guardarPlato(e) {
 
     const data = await res.json();
 
-    if (!res.ok) throw new Error(data.error || 'Error al guardar plato');
+    if (!res.ok) throw new Error(data.error || 'Error al guardar');
 
-    mostrarNotificacion(`✅ Plato ${editandoPlato ? 'actualizado' : 'creado'} exitosamente`, 'success');
+    mostrarNotificacion(`✅ Plato ${editandoPlato ? 'actualizado' : 'creado'}`, 'success');
     cerrarModalPlato();
     await cargarPlatos();
   } catch (error) {
-    console.error('Error:', error);
-    mostrarNotificacion(error.message, 'error');
-  }
-}
-
-async function aprobarPlato(id) {
-  try {
-    const res = await fetch(`${API_BASE}/platos/${id}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ aprobado: true })
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) throw new Error(data.error || 'Error al aprobar');
-
-    mostrarNotificacion('✅ Plato aprobado', 'success');
-    await cargarPlatos();
-    await cargarPendientes();
-  } catch (error) {
-    console.error('Error:', error);
     mostrarNotificacion(error.message, 'error');
   }
 }
@@ -575,14 +595,11 @@ async function eliminarPlato(id) {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    const data = await res.json();
-
-    if (!res.ok) throw new Error(data.error || 'Error al eliminar');
+    if (!res.ok) throw new Error('Error al eliminar');
 
     mostrarNotificacion('✅ Plato eliminado', 'success');
     await cargarPlatos();
   } catch (error) {
-    console.error('Error:', error);
     mostrarNotificacion(error.message, 'error');
   }
 }
@@ -590,71 +607,31 @@ async function eliminarPlato(id) {
 // ===== PENDIENTES =====
 async function cargarPendientes() {
   try {
-    // Restaurantes pendientes
-    const resRestaurantes = await fetch(`${API_BASE}/restaurantes/`, {
+    const res = await fetch(`${API_BASE}/restaurantes/`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    if (resRestaurantes.ok) {
-      const restaurantes = await resRestaurantes.json();
+    if (res.ok) {
+      const restaurantes = await res.json();
       const pendientes = restaurantes.filter(r => !r.aprobado);
       
       const tbody = document.getElementById('restaurantesPendientesBody');
-      tbody.innerHTML = '';
+      if (tbody) {
+        tbody.innerHTML = '';
 
-      if (pendientes.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #64748b;">No hay restaurantes pendientes</td></tr>';
-      } else {
-        pendientes.forEach(rest => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td><strong>${rest.nombre}</strong></td>
-            <td>${rest.categoria || 'Sin categoría'}</td>
-            <td>${rest.ubicacion || 'No especificada'}</td>
-            <td>
-              <div class="action-buttons">
-                <button class="btn-small btn-approve" onclick="aprobarRestaurante('${rest._id}')">✓ Aprobar</button>
-                <button class="btn-small btn-delete" onclick="eliminarRestaurante('${rest._id}')">✗ Rechazar</button>
-              </div>
-            </td>
-          `;
-          tbody.appendChild(tr);
-        });
-      }
-    }
-
-    // Platos pendientes
-    const resPlatos = await fetch(`${API_BASE}/restaurantes/`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-
-    if (resPlatos.ok) {
-      const restaurantes = await resPlatos.json();
-      const tbody = document.getElementById('platosPendientesBody');
-      tbody.innerHTML = '';
-      
-      let hayPendientes = false;
-
-      for (const rest of restaurantes) {
-        const platosRes = await fetch(`${API_BASE}/platos/restaurante/${rest._id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (platosRes.ok) {
-          const platos = await platosRes.json();
-          const pendientes = platos.filter(p => !p.aprobado);
-          
-          pendientes.forEach(plato => {
-            hayPendientes = true;
+        if (pendientes.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No hay pendientes</td></tr>';
+        } else {
+          pendientes.forEach(rest => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-              <td><strong>${plato.nombre}</strong></td>
-              <td>${rest.nombre}</td>
-              <td>$${plato.precio?.toFixed(2) || '0.00'}</td>
+              <td><strong>${rest.nombre}</strong></td>
+              <td>${rest.categoria || 'N/A'}</td>
+              <td>${rest.ubicacion || 'N/A'}</td>
               <td>
                 <div class="action-buttons">
-                  <button class="btn-small btn-approve" onclick="aprobarPlato('${plato._id}')">✓ Aprobar</button>
-                  <button class="btn-small btn-delete" onclick="eliminarPlato('${plato._id}')">✗ Rechazar</button>
+                  <button class="btn-small btn-approve" onclick="aprobarRestaurante('${rest._id}')">✓ Aprobar</button>
+                  <button class="btn-small btn-delete" onclick="eliminarRestaurante('${rest._id}')">✗ Rechazar</button>
                 </div>
               </td>
             `;
@@ -662,10 +639,11 @@ async function cargarPendientes() {
           });
         }
       }
+    }
 
-      if (!hayPendientes) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #64748b;">No hay platos pendientes</td></tr>';
-      }
+    const tbody2 = document.getElementById('platosPendientesBody');
+    if (tbody2) {
+      tbody2.innerHTML = '<tr><td colspan="4" style="text-align: center;">Los platos no requieren aprobación</td></tr>';
     }
   } catch (error) {
     console.error('Error al cargar pendientes:', error);
@@ -674,9 +652,9 @@ async function cargarPendientes() {
 
 // ===== CONFIGURAR FORMULARIOS =====
 function configurarFormularios() {
-  document.getElementById('categoriaForm').addEventListener('submit', crearCategoria);
-  document.getElementById('restauranteForm').addEventListener('submit', guardarRestaurante);
-  document.getElementById('platoForm').addEventListener('submit', guardarPlato);
+  document.getElementById('categoriaForm')?.addEventListener('submit', crearCategoria);
+  document.getElementById('restauranteForm')?.addEventListener('submit', guardarRestaurante);
+  document.getElementById('platoForm')?.addEventListener('submit', guardarPlato);
 }
 
 // ===== NOTIFICACIONES =====
@@ -691,7 +669,7 @@ function mostrarNotificacion(mensaje, tipo = 'success') {
     font-weight: 600;
     z-index: 10000;
     animation: slideIn 0.3s ease;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
   `;
 
   if (tipo === 'success') {
@@ -707,43 +685,23 @@ function mostrarNotificacion(mensaje, tipo = 'success') {
   notif.textContent = mensaje;
   document.body.appendChild(notif);
 
-  setTimeout(() => {
-    notif.style.animation = 'slideOut 0.3s ease';
-    setTimeout(() => notif.remove(), 300);
-  }, 3000);
+  setTimeout(() => notif.remove(), 3000);
 }
 
 // ===== LOGOUT =====
 document.getElementById("logoutBtn")?.addEventListener("click", () => {
   if (confirm('¿Cerrar sesión?')) {
-    localStorage.removeItem("token");
+    localStorage.clear();
     window.location.href = "../index.html";
   }
 });
 
-// ===== ESTILOS DE ANIMACIÓN =====
+// Estilos
 const style = document.createElement('style');
 style.textContent = `
   @keyframes slideIn {
-    from {
-      opacity: 0;
-      transform: translateX(100px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-
-  @keyframes slideOut {
-    from {
-      opacity: 1;
-      transform: translateX(0);
-    }
-    to {
-      opacity: 0;
-      transform: translateX(100px);
-    }
+    from { opacity: 0; transform: translateX(100px); }
+    to { opacity: 1; transform: translateX(0); }
   }
 `;
 document.head.appendChild(style);
