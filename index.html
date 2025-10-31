@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bienvenido</title>
+  <title>FoodRank - Bienvenido</title>
   <link rel="stylesheet" href="./css/styles.css" />
 </head>
 <body>
   <main class="container">
+    <!-- Pantalla de inicio -->
     <section class="card" id="inicio">
       <h1 class="title">Bienvenido a FoodRank</h1>
       <p class="subtitle">Descubre, califica y comparte experiencias gastronómicas</p>
@@ -17,18 +18,45 @@
       </div>
     </section>
 
+    <!-- Formulario de autenticación -->
     <section class="form-card hidden" id="formulario">
       <h2 id="formTitle">Formulario</h2>
       <form id="authForm">
-        <input type="text" id="usuario" placeholder="Usuario" required />
-        <input type="email" id="email" placeholder="Correo electrónico" required />
-        <input type="password" id="contraseña" placeholder="Contraseña" required />
+        <!-- ⭐ Campo usuario (solo visible en registro) -->
+        <input 
+          type="text" 
+          id="usuario" 
+          placeholder="Nombre de usuario" 
+          autocomplete="username"
+          minlength="3"
+          maxlength="20"
+          style="display: none;"
+        />
+        
+        <input 
+          type="email" 
+          id="email" 
+          placeholder="Correo electrónico" 
+          required 
+          autocomplete="email"
+        />
+        
+        <input 
+          type="password" 
+          id="contraseña" 
+          placeholder="Contraseña" 
+          required 
+          autocomplete="current-password"
+          minlength="6"
+        />
+        
         <button type="submit" class="btn">Enviar</button>
         <button type="button" id="volverBtn" class="btn secondary">Volver</button>
       </form>
     </section>
   </main>
 
+  <!-- Scripts -->
   <script src="./js/main.js"></script>
   <script src="./js/login.js"></script>
 </body>
