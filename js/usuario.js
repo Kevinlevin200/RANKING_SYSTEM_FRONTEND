@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       usuarioId = user._id || user.id;
       console.log("Usuario ID:", usuarioId);
       await cargarRestaurantes();
+      await cargarReseñasUsuario();
     }
   } catch (error) {
     console.error('Error en inicialización:', error);
@@ -50,9 +51,14 @@ async function verificarSesion() {
     // Actualizar UI
     const emailElem = document.getElementById("userEmail");
     const nombreElem = document.getElementById("userNombre");
+    const initialElem = document.getElementById("userInitial");
     
     if (emailElem) emailElem.textContent = data.usuario.email || 'usuario@email.com';
     if (nombreElem) nombreElem.textContent = data.usuario.usuario || data.usuario.nombre || 'Usuario';
+    if (initialElem) {
+      const nombre = data.usuario.usuario || data.usuario.nombre || 'U';
+      initialElem.textContent = nombre.charAt(0).toUpperCase();
+    }
     
     // Guardar ID
     usuarioId = data.usuario._id || data.usuario.id;
@@ -64,6 +70,87 @@ async function verificarSesion() {
     alert("Sesión inválida. Redirigiendo...");
     localStorage.clear();
     window.location.href = "../index.html";
+  }
+}
+
+// ===== CARGAR RESEÑAS DEL USUARIO =====
+async function cargarReseñasUsuario() {
+  try {
+    console.log("Cargando reseñas del usuario...");
+    mostrarCargando('reseñasContainer');
+    
+    // Intentar obtener reseñas del usuario
+    const res = await fetch(`${API_BASE}/reseña/usuario/${usuarioId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    const contenedor = document.getElementById("reseñasContainer");
+    
+    if (!res.ok) {
+      contenedor.innerHTML = '<p style="color: #64748b; text-align: center; padding: 40px;">No tienes reseñas aún. ¡Empieza a compartir tus opiniones!</p>';
+      return;
+    }
+
+    const data = await res.json();
+    console.log("Reseñas del usuario:", data);
+    
+    contenedor.innerHTML = "";
+
+    if (!data || data.length === 0) {
+      contenedor.innerHTML = '<p style="color: #64748b; text-align: center; padding: 40px;">No tienes reseñas aún. ¡Empieza a compartir tus opiniones!</p>';
+      document.getElementById("totalReseñas").textContent = "0";
+      return;
+    }
+
+    document.getElementById("totalReseñas").textContent = data.length;
+
+    data.forEach((reseña, index) => {
+      const card = document.createElement('div');
+      card.className = 'reseña-card';
+      card.style.animationDelay = `${index * 0.1}s`;
+      
+      const restauranteNombre = reseña.restauranteId?.nombre || 'Restaurante desconocido';
+      
+      card.innerHTML = `
+        <div style="margin-bottom: 12px;">
+          <h4 style="color: #1e293b; font-size: 1.1rem; margin-bottom: 8px;">🍽️ ${restauranteNombre}</h4>
+          <p style="font-size: 1rem; color: #475569; line-height: 1.6; margin: 10px 0;">"${reseña.comentario}"</p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; margin-top: 14px; flex-wrap: wrap;">
+          <span style="background: #fbbf24; color: #78350f; padding: 6px 12px; border-radius: 16px; font-size: 0.9rem; font-weight: 700;">
+            ⭐ ${reseña.calificacion}/5
+          </span>
+          <span style="color: #64748b; font-size: 0.9rem;">
+            📅 ${new Date(reseña.createdAt || Date.now()).toLocaleDateString('es-ES')}
+          </span>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap;">
+          ${reseña.restauranteId ? `
+            <button class="btn" style="padding: 8px 16px; font-size: 0.9rem;" 
+              onclick="verDetalle('${reseña.restauranteId._id || reseña.restauranteId}')">
+              👁️ Ver restaurante
+            </button>
+          ` : ''}
+          <button class="btn" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 8px 16px; font-size: 0.9rem;" 
+            onclick="editarReseña('${reseña._id}', '${reseña.restauranteId?._id || reseña.restauranteId}', \`${reseña.comentario.replace(/`/g, '\\`')}\`, ${reseña.calificacion})">
+            ✏️ Editar
+          </button>
+          <button class="btn secondary" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding: 8px 16px; font-size: 0.9rem;" 
+            onclick="eliminarReseña('${reseña._id}', '${reseña.restauranteId?._id || reseña.restauranteId}')">
+            🗑️ Eliminar
+          </button>
+        </div>
+      `;
+      contenedor.appendChild(card);
+    });
+  } catch (error) {
+    console.error('Error al cargar reseñas:', error);
+    const contenedor = document.getElementById("reseñasContainer");
+    contenedor.innerHTML = '<p style="color: #64748b; text-align: center; padding: 40px;">No tienes reseñas aún. ¡Empieza a compartir tus opiniones!</p>';
   }
 }
 
@@ -93,6 +180,8 @@ async function cargarRestaurantes() {
       contenedor.innerHTML = '<p style="color: #64748b;">No hay restaurantes disponibles.</p>';
       return;
     }
+
+    document.getElementById("totalRestaurantes").textContent = data.length;
 
     // Añadir filtros de categoría
     const categorias = [...new Set(data.map(item => item.restaurante?.categoria).filter(Boolean))];
@@ -198,11 +287,22 @@ async function filtrarPorCategoria(categoria) {
   }
 }
 
-// ===== VER DETALLE =====
+// ===== VER DETALLE (MODAL) =====
 async function verDetalle(id) {
   try {
     console.log("Cargando detalle del restaurante:", id);
-    mostrarCargando('reseñasContainer');
+    
+    const modal = document.getElementById('restaurantDetailModal');
+    const modalBody = document.getElementById('modalBody');
+    
+    // Mostrar modal con loading
+    modal.style.display = 'flex';
+    modalBody.innerHTML = `
+      <div style="text-align: center; padding: 60px;">
+        <div class="loading"></div>
+        <p style="color: #64748b; margin-top: 18px; font-size: 1.05rem;">Cargando detalles...</p>
+      </div>
+    `;
     
     const res = await fetch(`${API_BASE}/ranking/detalle/${id}`, {
       method: 'GET',
@@ -217,39 +317,39 @@ async function verDetalle(id) {
     const data = await res.json();
     console.log("Detalles cargados:", data);
     
-    const contenedor = document.getElementById("reseñasContainer");
-    
     // Header del restaurante
-    contenedor.innerHTML = `
-      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; border-radius: 16px; margin-bottom: 25px; box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);">
-        <h3 style="margin: 0 0 12px 0; font-size: 1.8rem;">🏪 ${data.restaurante.nombre}</h3>
-        <p style="margin: 6px 0; opacity: 0.95; font-size: 1.05rem;">${data.restaurante.descripcion || 'Sin descripción'}</p>
-        <p style="margin: 6px 0; font-size: 1rem;"><strong>📍</strong> ${data.restaurante.ubicacion || 'Sin ubicación'}</p>
-        <p style="margin: 6px 0; font-size: 1rem;"><strong>📂</strong> ${data.restaurante.categoria || 'Sin categoría'}</p>
+    modalBody.innerHTML = `
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 32px; border-radius: 20px; margin-bottom: 30px; box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);">
+        <h2 style="margin: 0 0 16px 0; font-size: 2rem; font-weight: 700;">🏪 ${data.restaurante.nombre}</h2>
+        <p style="margin: 8px 0; opacity: 0.95; font-size: 1.1rem; line-height: 1.6;">${data.restaurante.descripcion || 'Sin descripción'}</p>
+        <div style="display: flex; gap: 24px; margin-top: 16px; flex-wrap: wrap;">
+          <p style="margin: 0; font-size: 1rem;"><strong>📍</strong> ${data.restaurante.ubicacion || 'Sin ubicación'}</p>
+          <p style="margin: 0; font-size: 1rem;"><strong>📂</strong> ${data.restaurante.categoria || 'Sin categoría'}</p>
+        </div>
       </div>
     `;
 
     // Mostrar platos
     if (data.platos && data.platos.length > 0) {
-      contenedor.innerHTML += '<h4 style="margin: 25px 0 18px 0; color: #1e293b; font-size: 1.4rem;">🍽️ Menú:</h4>';
+      modalBody.innerHTML += '<h3 style="margin: 30px 0 20px 0; color: #1e293b; font-size: 1.6rem; font-weight: 700;">🍽️ Menú:</h3>';
       
       const platosContainer = document.createElement('div');
-      platosContainer.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; margin-bottom: 30px;';
+      platosContainer.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-bottom: 35px;';
       
       data.platos.forEach(plato => {
         const platoCard = document.createElement('div');
         platoCard.style.cssText = `
           background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-          padding: 20px;
-          border-radius: 14px;
+          padding: 24px;
+          border-radius: 16px;
           border: 2px solid #e2e8f0;
           transition: all 0.3s ease;
           cursor: pointer;
         `;
         platoCard.innerHTML = `
-          <h5 style="margin: 0 0 10px 0; color: #1e293b; font-size: 1.15rem; font-weight: 700;">${plato.nombre}</h5>
-          <p style="margin: 6px 0; color: #64748b; font-size: 0.95rem; line-height: 1.5;">${plato.descripcion || 'Sin descripción'}</p>
-          <p style="margin: 10px 0 0 0; color: #667eea; font-weight: 600; font-size: 0.95rem;">📂 ${plato.categoria || 'Sin categoría'}</p>
+          <h4 style="margin: 0 0 12px 0; color: #1e293b; font-size: 1.2rem; font-weight: 700;">${plato.nombre}</h4>
+          <p style="margin: 8px 0; color: #64748b; font-size: 0.95rem; line-height: 1.6;">${plato.descripcion || 'Sin descripción'}</p>
+          <p style="margin: 12px 0 0 0; color: #667eea; font-weight: 600; font-size: 0.95rem;">📂 ${plato.categoria || 'Sin categoría'}</p>
         `;
         platoCard.onmouseover = () => {
           platoCard.style.transform = 'translateY(-4px)';
@@ -263,28 +363,28 @@ async function verDetalle(id) {
         };
         platosContainer.appendChild(platoCard);
       });
-      contenedor.appendChild(platosContainer);
+      modalBody.appendChild(platosContainer);
     }
 
     // Formulario para crear reseña
-    contenedor.innerHTML += `
-      <div style="margin: 30px 0; padding: 28px; background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); border-radius: 18px; border: 2px solid #e2e8f0; box-shadow: 0 6px 20px rgba(0,0,0,0.06);">
-        <h4 style="margin: 0 0 18px 0; color: #1e293b; font-size: 1.4rem;">✍️ Escribe tu reseña</h4>
+    modalBody.innerHTML += `
+      <div style="margin: 35px 0; padding: 32px; background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); border-radius: 20px; border: 2px solid #e2e8f0; box-shadow: 0 6px 20px rgba(0,0,0,0.06);">
+        <h3 style="margin: 0 0 20px 0; color: #1e293b; font-size: 1.5rem; font-weight: 700;">✏️ Escribe tu reseña</h3>
         <textarea id="nuevoComentario" placeholder="Comparte tu experiencia con este restaurante..." 
-          style="width: 100%; padding: 16px; border: 2px solid #e2e8f0; border-radius: 12px; margin-bottom: 14px; min-height: 130px; font-family: inherit; font-size: 1rem; resize: vertical; transition: all 0.3s ease;"></textarea>
-        <div style="display: flex; gap: 14px; align-items: center; margin-bottom: 18px; flex-wrap: wrap;">
-          <label style="font-weight: 600; color: #475569; font-size: 1rem;">Calificación:</label>
+          style="width: 100%; padding: 18px; border: 2px solid #e2e8f0; border-radius: 14px; margin-bottom: 16px; min-height: 140px; font-family: inherit; font-size: 1rem; resize: vertical; transition: all 0.3s ease;"></textarea>
+        <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 20px; flex-wrap: wrap;">
+          <label style="font-weight: 600; color: #475569; font-size: 1.05rem;">Calificación:</label>
           <input type="number" id="nuevaCalificacion" min="1" max="5" placeholder="1-5" 
-            style="width: 90px; padding: 12px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 1.05rem; font-weight: 600; text-align: center;">
-          <span style="color: #64748b; font-size: 0.95rem;">⭐ (1 a 5 estrellas)</span>
+            style="width: 100px; padding: 14px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 1.1rem; font-weight: 600; text-align: center;">
+          <span style="color: #64748b; font-size: 1rem;">⭐ (1 a 5 estrellas)</span>
         </div>
-        <button class="btn" onclick="crearReseña('${id}')" style="width: 100%; padding: 14px; font-size: 1.05rem;">Publicar reseña</button>
+        <button class="btn" onclick="crearReseña('${id}')" style="width: 100%; padding: 16px; font-size: 1.1rem;">Publicar reseña</button>
       </div>
     `;
 
     // Mostrar reseñas existentes
     if (data.reseñas && data.reseñas.length > 0) {
-      contenedor.innerHTML += '<h4 style="margin: 30px 0 18px 0; color: #1e293b; font-size: 1.4rem;">💬 Reseñas de usuarios:</h4>';
+      modalBody.innerHTML += '<h3 style="margin: 35px 0 20px 0; color: #1e293b; font-size: 1.5rem; font-weight: 700;">💬 Reseñas de usuarios:</h3>';
       
       data.reseñas.forEach(reseña => {
         const esPropia = reseña.usuarioId === usuarioId || 
@@ -299,46 +399,104 @@ async function verDetalle(id) {
         card.className = 'reseña-card';
         
         card.innerHTML = `
-          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
             <div style="flex: 1;">
-              <p style="font-size: 1.1rem; margin: 0 0 10px 0; font-weight: 600; color: #1e293b; line-height: 1.5;">"${reseña.comentario}"</p>
-              <div style="display: flex; align-items: center; gap: 16px; margin-top: 12px; flex-wrap: wrap;">
-                <span style="background: #fbbf24; color: #78350f; padding: 6px 14px; border-radius: 20px; font-size: 0.95rem; font-weight: 700;">
+              <p style="font-size: 1.1rem; margin: 0 0 12px 0; font-weight: 600; color: #1e293b; line-height: 1.6;">"${reseña.comentario}"</p>
+              <div style="display: flex; align-items: center; gap: 18px; margin-top: 14px; flex-wrap: wrap;">
+                <span style="background: #fbbf24; color: #78350f; padding: 8px 16px; border-radius: 20px; font-size: 1rem; font-weight: 700;">
                   ⭐ ${reseña.calificacion}/5
                 </span>
-                <span style="color: #64748b; font-size: 0.95rem; font-weight: 500;">
+                <span style="color: #64748b; font-size: 1rem; font-weight: 500;">
                   👤 ${nombreUsuario}
                 </span>
               </div>
             </div>
           </div>
-          <div style="display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap;">
+          <div style="display: flex; gap: 12px; margin-top: 18px; flex-wrap: wrap; align-items: center;">
             ${esPropia ? `
-              <button class="btn" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 10px 18px; font-size: 0.95rem;" 
+              <button class="btn" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 10px 20px; font-size: 0.95rem;" 
                 onclick="editarReseña('${reseña._id}', '${id}', \`${reseña.comentario.replace(/`/g, '\\`')}\`, ${reseña.calificacion})">
                 ✏️ Editar
               </button>
-              <button class="btn secondary" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding: 10px 18px; font-size: 0.95rem;" 
+              <button class="btn secondary" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding: 10px 20px; font-size: 0.95rem;" 
                 onclick="eliminarReseña('${reseña._id}', '${id}')">
                 🗑️ Eliminar
               </button>
             ` : `
-              <span style="color: #64748b; font-size: 0.95rem; padding: 10px 14px; background: #f1f5f9; border-radius: 10px;">
-                👍 ${reseña.likes?.length || 0} · 👎 ${reseña.dislikes?.length || 0}
-              </span>
+              <div style="display: flex; gap: 10px;">
+                <button class="btn-like" onclick="darLike('${reseña._id}')" style="
+                  padding: 8px 16px;
+                  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                  color: white;
+                  border: none;
+                  border-radius: 10px;
+                  font-size: 0.95rem;
+                  font-weight: 600;
+                  cursor: pointer;
+                  transition: all 0.3s ease;
+                  display: flex;
+                  align-items: center;
+                  gap: 6px;
+                ">
+                  👍 Like <span style="background: rgba(255,255,255,0.3); padding: 2px 8px; border-radius: 8px;">${reseña.likes?.length || 0}</span>
+                </button>
+                <button class="btn-dislike" onclick="darDislike('${reseña._id}')" style="
+                  padding: 8px 16px;
+                  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+                  color: white;
+                  border: none;
+                  border-radius: 10px;
+                  font-size: 0.95rem;
+                  font-weight: 600;
+                  cursor: pointer;
+                  transition: all 0.3s ease;
+                  display: flex;
+                  align-items: center;
+                  gap: 6px;
+                ">
+                  👎 Dislike <span style="background: rgba(255,255,255,0.3); padding: 2px 8px; border-radius: 8px;">${reseña.dislikes?.length || 0}</span>
+                </button>
+              </div>
             `}
           </div>
         `;
-        contenedor.appendChild(card);
+        modalBody.appendChild(card);
       });
     } else {
-      contenedor.innerHTML += '<p style="color: #64748b; margin-top: 18px; text-align: center; padding: 35px; background: #f8fafc; border-radius: 14px; font-size: 1.05rem;">No hay reseñas aún. ¡Sé el primero en opinar!</p>';
+      modalBody.innerHTML += '<p style="color: #64748b; margin-top: 20px; text-align: center; padding: 40px; background: #f8fafc; border-radius: 16px; font-size: 1.1rem;">No hay reseñas aún. ¡Sé el primero en opinar!</p>';
     }
   } catch (error) {
     console.error('Error al cargar detalles:', error);
-    document.getElementById("reseñasContainer").innerHTML = 
-      '<p style="color: #ef4444;">Error al cargar detalles del restaurante.</p>';
+    const modalBody = document.getElementById('modalBody');
+    modalBody.innerHTML = '<p style="color: #ef4444; text-align: center; padding: 40px;">Error al cargar detalles del restaurante.</p>';
   }
+}
+
+// ===== CERRAR MODAL =====
+function cerrarDetalleRestaurante() {
+  const modal = document.getElementById('restaurantDetailModal');
+  modal.style.display = 'none';
+}
+
+// Cerrar modal al hacer clic fuera del contenido
+document.getElementById('restaurantDetailModal')?.addEventListener('click', (e) => {
+  if (e.target.id === 'restaurantDetailModal') {
+    cerrarDetalleRestaurante();
+  }
+});
+
+// ===== DAR LIKE (Placeholder - sin funcionalidad por ahora) =====
+function darLike(reseñaId) {
+  console.log("Like a reseña:", reseñaId);
+  // TODO: Implementar funcionalidad de like
+  alert('Funcionalidad de Like - Próximamente');
+}
+
+// ===== DAR DISLIKE (Placeholder - sin funcionalidad por ahora) =====
+function darDislike(reseñaId) {
+  console.log("Dislike a reseña:", reseñaId);
+  // TODO: Implementar funcionalidad de dislike
+  alert('Funcionalidad de Dislike - Próximamente');
 }
 
 // ===== CREAR RESEÑA =====
@@ -388,6 +546,7 @@ async function crearReseña(restauranteId) {
     document.getElementById('nuevaCalificacion').value = '';
     
     await verDetalle(restauranteId);
+    await cargarReseñasUsuario();
   } catch (error) {
     console.error('Error al crear reseña:', error);
     alert('❌ Error: ' + error.message);
@@ -424,7 +583,11 @@ async function editarReseña(id, restauranteId, comentarioActual, calificacionAc
     if (!res.ok) throw new Error(data.error || 'Error al editar');
 
     alert('✅ ' + (data.message || 'Reseña actualizada'));
-    await verDetalle(restauranteId);
+    
+    if (restauranteId) {
+      await verDetalle(restauranteId);
+    }
+    await cargarReseñasUsuario();
   } catch (error) {
     console.error('Error al editar:', error);
     alert('❌ Error: ' + error.message);
@@ -450,7 +613,11 @@ async function eliminarReseña(id, restauranteId) {
     if (!res.ok) throw new Error(data.error || 'Error al eliminar');
 
     alert('✅ ' + (data.message || 'Reseña eliminada'));
-    await verDetalle(restauranteId);
+    
+    if (restauranteId) {
+      await verDetalle(restauranteId);
+    }
+    await cargarReseñasUsuario();
   } catch (error) {
     console.error('Error al eliminar:', error);
     alert('❌ Error: ' + error.message);
