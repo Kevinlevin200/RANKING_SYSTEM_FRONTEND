@@ -17,7 +17,7 @@
           </div>
           <div class="user-info">
             <h1>Hola, <span id="userNombre">Usuario</span> 👋</h1>
-            <p class="user-subtitle">Gestiona tus restaurantes y reseñas</p>
+            <p class="user-subtitle">Gestiona tus reseñas y descubre restaurantes</p>
           </div>
         </div>
         <button id="logoutBtn" class="btn-logout">
@@ -27,7 +27,7 @@
     </header>
 
     <main class="dashboard-main">
-      <!-- Stats Cards -->
+      <!-- Stats Cards - Ocupa todo el ancho -->
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">⭐</div>
@@ -52,47 +52,60 @@
         </div>
       </div>
 
-      <!-- Search and Filter Section -->
-      <div class="search-section">
-        <div class="search-bar">
-          <span class="search-icon">🔍</span>
-          <input type="text" id="searchInput" placeholder="Buscar restaurantes o reseñas...">
-        </div>
-        <div class="filter-section">
-          <button class="filter-btn active" data-filter="all">Todos</button>
-          <button class="filter-btn" data-filter="restaurantes">Restaurantes</button>
-          <button class="filter-btn" data-filter="reseñas">Reseñas</button>
-        </div>
+      <!-- Columna Izquierda - Reseñas -->
+      <div class="left-column">
+        <section class="content-section" id="reseñasSection">
+          <div class="section-header">
+            <h2>📝 Mis Reseñas</h2>
+          </div>
+          <div id="reseñasContainer" class="cards-grid">
+            <div class="loading-state">
+              <div class="loading"></div>
+              <p>Cargando reseñas...</p>
+            </div>
+          </div>
+        </section>
       </div>
 
-      <!-- Restaurantes Section -->
-      <section class="content-section" id="restaurantesSection">
-        <div class="section-header">
-          <h2>⭐ Restaurantes Recomendados</h2>
-          <button class="btn-add">+ Agregar Restaurante</button>
-        </div>
-        <div id="restaurantesContainer" class="cards-grid">
-          <div class="loading-state">
-            <div class="loading"></div>
-            <p>Cargando restaurantes...</p>
+      <!-- Columna Derecha - Búsqueda y Restaurantes -->
+      <div class="right-column">
+        <!-- Search and Filter Section -->
+        <div class="search-section">
+          <div class="search-bar">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="Buscar restaurantes o reseñas...">
+          </div>
+          <div class="filter-section">
+            <button class="filter-btn active" data-filter="all">Todos</button>
+            <button class="filter-btn" data-filter="restaurantes">Restaurantes</button>
+            <button class="filter-btn" data-filter="reseñas">Reseñas</button>
           </div>
         </div>
-      </section>
 
-      <!-- Reseñas Section -->
-      <section class="content-section" id="reseñasSection">
-        <div class="section-header">
-          <h2>📝 Tus Reseñas</h2>
-          <button class="btn-add">+ Nueva Reseña</button>
-        </div>
-        <div id="reseñasContainer" class="cards-grid">
-          <div class="loading-state">
-            <div class="loading"></div>
-            <p>Cargando reseñas...</p>
+        <!-- Restaurantes Section -->
+        <section class="content-section" id="restaurantesSection">
+          <div class="section-header">
+            <h2>⭐ Restaurantes Recomendados</h2>
           </div>
-        </div>
-      </section>
+          <div id="restaurantesContainer" class="cards-grid">
+            <div class="loading-state">
+              <div class="loading"></div>
+              <p>Cargando restaurantes...</p>
+            </div>
+          </div>
+        </section>
+      </div>
     </main>
+
+    <!-- Modal de detalle del restaurante -->
+    <div id="restaurantDetailModal" class="restaurant-detail-modal" style="display: none;">
+      <div class="modal-content">
+        <button class="modal-close" onclick="cerrarDetalleRestaurante()">×</button>
+        <div class="modal-body" id="modalBody">
+          <!-- Contenido del detalle del restaurante -->
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="../js/usuario.js"></script>
