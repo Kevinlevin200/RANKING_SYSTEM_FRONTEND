@@ -73,12 +73,12 @@
         <div class="search-section">
           <div class="search-bar">
             <span class="search-icon">🔍</span>
-            <input type="text" id="searchInput" placeholder="Buscar restaurantes o reseñas...">
+            <input type="text" id="searchInput" placeholder="Buscar restaurantes o platos...">
           </div>
           <div class="filter-section">
             <button class="filter-btn active" data-filter="all">Todos</button>
             <button class="filter-btn" data-filter="restaurantes">Restaurantes</button>
-            <button class="filter-btn" data-filter="reseñas">Reseñas</button>
+            <button class="filter-btn" data-filter="reseñas">Platos</button>
           </div>
         </div>
 
@@ -107,7 +107,65 @@
       </div>
     </div>
   </div>
+<!-- Modal para editar reseña -->
+<div id="editReviewModal" class="edit-modal" style="display: none;">
+  <div class="edit-modal-content">
+    <button class="modal-close" onclick="cerrarEditarModal()">×</button>
+    <h2 style="margin: 0 0 24px 0; color: #1e293b; font-size: 1.8rem; font-weight: 700;">✏️ Editar Reseña</h2>
+    
+    <div style="margin-bottom: 20px;">
+      <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #475569;">Comentario:</label>
+      <textarea id="editComentario" 
+        style="width: 100%; padding: 16px; border: 2px solid #e2e8f0; border-radius: 12px; min-height: 120px; font-family: inherit; font-size: 1rem; resize: vertical;"
+        placeholder="Escribe tu comentario..."></textarea>
+    </div>
+    
+    <div style="margin-bottom: 24px;">
+      <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #475569;">Calificación:</label>
+      <input type="number" id="editCalificacion" min="1" max="5" 
+        style="width: 100px; padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 1.1rem; font-weight: 600; text-align: center;">
+      <span style="margin-left: 12px; color: #64748b;">⭐ (1 a 5 estrellas)</span>
+    </div>
+    
+    <div style="display: flex; gap: 12px;">
+      <button class="btn" onclick="guardarEdicionReseña()" 
+        style="flex: 1; padding: 14px; font-size: 1rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+        💾 Guardar Cambios
+      </button>
+      <button class="btn secondary" onclick="cerrarEditarModal()" 
+        style="flex: 1; padding: 14px; font-size: 1rem; background: linear-gradient(135deg, #6c757d 0%, #495057 100%);">
+        ❌ Cancelar
+      </button>
+    </div>
+  </div>
+</div>
 
+<!-- Modal de confirmación para cerrar sesión -->
+<div id="logoutConfirmModal" class="confirm-modal" style="display: none;">
+  <div class="confirm-modal-content">
+    <div style="text-align: center; margin-bottom: 24px;">
+      <div style="width: 80px; height: 80px; margin: 0 auto 16px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);">
+        🚪
+      </div>
+      <h2 style="margin: 0 0 12px 0; color: #1e293b; font-size: 1.6rem; font-weight: 700;">¿Cerrar Sesión?</h2>
+      <p style="color: #64748b; font-size: 1.05rem;">¿Estás seguro de que deseas cerrar tu sesión?</p>
+    </div>
+    
+    <div style="display: flex; gap: 12px;">
+      <button class="btn" onclick="confirmarLogout()" 
+        style="flex: 1; padding: 14px; font-size: 1rem; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+        ✅ Sí, Cerrar Sesión
+      </button>
+      <button class="btn secondary" onclick="cerrarLogoutModal()" 
+        style="flex: 1; padding: 14px; font-size: 1rem; background: linear-gradient(135deg, #6c757d 0%, #495057 100%);">
+        ❌ Cancelar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast de notificaciones -->
+<div id="toast" class="toast"></div>
   <script src="../js/usuario.js"></script>
 </body>
 </html>
