@@ -94,31 +94,46 @@ function realizarBusqueda(query) {
     return nombre.includes(query) || descripcion.includes(query) || categoria.includes(query);
   });
 
+  // 3. Obtener IDs únicos de restaurantes que tienen los platos encontrados
   const idsRestaurantesDePlatos = [...new Set(
     platosEncontrados
-      .map(plato => plato.restauranteId) // Ya es un string, no necesita conversión
+      .map(plato => plato.restauranteId?.toString())
       .filter(id => id)
   )];
 
-  // 4. Obtener restaurantes completos
+  console.log("IDs de restaurantes con platos encontrados:", idsRestaurantesDePlatos);
+
+  // 4. Obtener restaurantes completos basados en los platos encontrados
   const restaurantesPorPlatos = todosLosRestaurantes.filter(({ restaurante }) => {
     if (!restaurante) return false;
-    const restauranteId = restaurante._id || restaurante.id;
-    // CAMBIA ESTA LÍNEA - comparar strings directamente:
-    return idsRestaurantesDePlatos.some(id => id === restauranteId || id === restauranteId.toString());
+    const restauranteId = (restaurante._id || restaurante.id)?.toString();
+    
+    // Comparar IDs como strings
+    const tieneElPlato = idsRestaurantesDePlatos.includes(restauranteId);
+    
+    if (tieneElPlato) {
+      console.log(`Restaurante encontrado por plato: ${restaurante.nombre} (ID: ${restauranteId})`);
+    }
+    
+    return tieneElPlato;
   });
 
   // 5. Combinar sin duplicados
   const todosRestaurantesEncontrados = [...restaurantesPorNombre];
   restaurantesPorPlatos.forEach(rest => {
     const yaExiste = todosRestaurantesEncontrados.some(
-      r => (r.restaurante._id || r.restaurante.id) === (rest.restaurante._id || rest.restaurante.id)
+      r => {
+        const id1 = (r.restaurante._id || r.restaurante.id)?.toString();
+        const id2 = (rest.restaurante._id || rest.restaurante.id)?.toString();
+        return id1 === id2;
+      }
     );
     if (!yaExiste) {
       todosRestaurantesEncontrados.push(rest);
     }
   });
 
+  console.log(`Total restaurantes encontrados: ${todosRestaurantesEncontrados.length}`);
   mostrarResultadosBusqueda(todosRestaurantesEncontrados, platosEncontrados, query);
 }
 
