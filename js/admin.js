@@ -8,6 +8,8 @@ let editandoPlato = false;
 // Variables para el modal de confirmación
 let elementoAEliminar = null;
 let tipoElementoAEliminar = null;
+let accionPendiente = null; // 'eliminar' o 'desactivar'
+let callbackConfirmacion = null;
 
 console.log("admin.js cargado, token:", token ? "✅ Presente" : "❌ Ausente");
 
@@ -243,9 +245,13 @@ async function guardarCategoria(e) {
 }
 
 function eliminarCategoriaDirecto(id, nombre) {
-  if (confirm(`¿Estás seguro de eliminar la categoría "${nombre}"?\n\nLos restaurantes asociados perderán esta categoría.`)) {
-    eliminarCategoria(id);
-  }
+  mostrarModalConfirmacion(
+    'eliminar',
+    'categoría',
+    nombre,
+    `Los restaurantes asociados perderán esta categoría.`,
+    () => eliminarCategoria(id)
+  );
 }
 
 async function eliminarCategoria(id) {
@@ -460,34 +466,50 @@ async function aprobarRestaurante(id) {
 }
 
 async function desactivarRestaurante(id) {
-  if (!confirm('¿Desactivar este restaurante? Dejará de aparecer en búsquedas y listados públicos.')) {
-    return;
-  }
+  // Obtener el nombre del restaurante
+  const res = await fetch(`${API_BASE}/restaurantes/${id}`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
   
-  try {
-    const res = await fetch(`${API_BASE}/restaurantes/${id}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ aprobado: false })
-    });
+  if (res.ok) {
+    const rest = await res.json();
+    mostrarModalConfirmacion(
+      'desactivar',
+      'restaurante',
+      rest.nombre,
+      `Dejará de aparecer en búsquedas y listados públicos.`,
+      async () => {
+        try {
+          const res = await fetch(`${API_BASE}/restaurantes/${id}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ aprobado: false })
+          });
 
-    if (!res.ok) throw new Error('Error al desactivar');
+          if (!res.ok) throw new Error('Error al desactivar');
 
-    mostrarNotificacion('✅ Restaurante desactivado', 'success');
-    await cargarRestaurantes();
-    await cargarPendientes();
-  } catch (error) {
-    mostrarNotificacion(error.message, 'error');
+          mostrarNotificacion('✅ Restaurante desactivado', 'success');
+          await cargarRestaurantes();
+          await cargarPendientes();
+        } catch (error) {
+          mostrarNotificacion(error.message, 'error');
+        }
+      }
+    );
   }
 }
 
 function eliminarRestauranteDirecto(id, nombre) {
-  if (confirm(`¿Estás seguro de eliminar el restaurante "${nombre}"?\n\nTambién se eliminarán todos sus platos y reseñas asociados.`)) {
-    eliminarRestaurante(id);
-  }
+  mostrarModalConfirmacion(
+    'eliminar',
+    'restaurante',
+    nombre,
+    `También se eliminarán todos sus platos y reseñas asociados.`,
+    () => eliminarRestaurante(id)
+  );
 }
 
 async function eliminarRestaurante(id) {
@@ -665,9 +687,13 @@ async function guardarPlato(e) {
 }
 
 function eliminarPlatoDirecto(id, nombre) {
-  if (confirm(`¿Estás seguro de eliminar el plato "${nombre}"?`)) {
-    eliminarPlato(id);
-  }
+  mostrarModalConfirmacion(
+    'eliminar',
+    'plato',
+    nombre,
+    `Esta acción no se puede deshacer.`,
+    () => eliminarPlato(id)
+  );
 }
 
 async function eliminarPlato(id) {
@@ -740,6 +766,104 @@ async function cargarPendientes() {
   }
 }
 
+// ===== MODAL DE CONFIRMACIÓN =====
+function mostrarModalConfirmacion(accion, tipo, nombre, advertencia, callback) {
+  accionPendiente = accion;
+  tipoElementoAEliminar = tipo;
+  elementoAEliminar = nombre;
+  callbackConfirmacion = callback;
+  
+  const modal = document.getElementById('modalConfirmarEliminar');
+  const mensaje = document.getElementById('mensajeConfirmacion');
+  const detalle = document.getElementById('detalleElemento');
+  const btnConfirmar = document.querySelector('#modalConfirmarEliminar .btn');
+  const mensajeContainer = mensaje.parentElement;
+  const tituloModal = document.querySelector('#modalConfirmarEliminar .modal-header h3');
+  
+  // Resetear estilos
+  tituloModal.style.color = '#ef4444';
+  mensajeContainer.style.background = 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
+  mensajeContainer.style.borderLeft = '5px solid #ef4444';
+  mensaje.style.color = '#991b1b';
+  
+  // Configurar según la acción
+  if (accion === 'eliminar') {
+    tituloModal.innerHTML = '⚠️ Confirmar Eliminación';
+    tituloModal.style.color = '#ef4444';
+    mensaje.innerHTML = `¿Estás seguro de que deseas <strong>eliminar</strong> este ${tipo}?`;
+    btnConfirmar.innerHTML = '🗑️ Sí, Eliminar';
+    btnConfirmar.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+    mensajeContainer.style.background = 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
+    mensajeContainer.style.borderLeft = '5px solid #ef4444';
+    mensaje.style.color = '#991b1b';
+  } else if (accion === 'desactivar') {
+    tituloModal.innerHTML = '⏸️ Confirmar Desactivación';
+    tituloModal.style.color = '#f59e0b';
+    mensaje.innerHTML = `¿Estás seguro de que deseas <strong>desactivar</strong> este ${tipo}?`;
+    mensajeContainer.style.background = 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)';
+    mensajeContainer.style.borderLeft = '5px solid #f59e0b';
+    mensaje.style.color = '#92400e';
+    btnConfirmar.innerHTML = '⏸️ Sí, Desactivar';
+    btnConfirmar.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+  } else if (accion === 'cerrar-sesion') {
+    tituloModal.innerHTML = '🚪 Cerrar Sesión';
+    tituloModal.style.color = '#6366f1';
+    mensaje.innerHTML = `¿Estás seguro de que deseas <strong>cerrar sesión</strong>?`;
+    mensajeContainer.style.background = 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)';
+    mensajeContainer.style.borderLeft = '5px solid #6366f1';
+    mensaje.style.color = '#3730a3';
+    btnConfirmar.innerHTML = '🚪 Sí, Cerrar Sesión';
+    btnConfirmar.style.background = 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)';
+  }
+  
+  // Mostrar detalles
+  let icono = '📂';
+  if (tipo === 'restaurante') icono = '🍽️';
+  else if (tipo === 'plato') icono = '🍕';
+  else if (tipo === 'sesión') icono = '👤';
+  
+  detalle.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+        ${icono}
+      </div>
+      <div style="flex: 1;">
+        <div style="font-weight: 700; color: #1e293b; font-size: 1.1rem; margin-bottom: 4px;">${nombre}</div>
+        <div style="color: #64748b; font-size: 0.9rem;">Tipo: ${tipo.charAt(0).toUpperCase() + tipo.slice(1)}</div>
+      </div>
+    </div>
+    <div style="background: #fff; padding: 12px; border-radius: 8px; border-left: 3px solid ${accion === 'eliminar' ? '#ef4444' : accion === 'desactivar' ? '#f59e0b' : '#6366f1'};">
+      <p style="margin: 0; color: #475569; font-size: 0.95rem;">⚠️ ${advertencia}</p>
+    </div>
+  `;
+  
+  modal.classList.add('active');
+}
+
+function cerrarModalConfirmar() {
+  const modal = document.getElementById('modalConfirmarEliminar');
+  modal.classList.remove('active');
+  
+  // Resetear estilos
+  document.querySelector('#modalConfirmarEliminar .modal-header h3').style.color = '#ef4444';
+  document.getElementById('mensajeConfirmacion').parentElement.style.background = 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
+  document.getElementById('mensajeConfirmacion').parentElement.style.borderLeft = '5px solid #ef4444';
+  document.getElementById('mensajeConfirmacion').style.color = '#991b1b';
+  
+  // Limpiar variables
+  accionPendiente = null;
+  tipoElementoAEliminar = null;
+  elementoAEliminar = null;
+  callbackConfirmacion = null;
+}
+
+function confirmarEliminacion() {
+  if (callbackConfirmacion) {
+    callbackConfirmacion();
+  }
+  cerrarModalConfirmar();
+}
+
 // ===== CONFIGURAR FORMULARIOS =====
 function configurarFormularios() {
   document.getElementById('categoriaForm')?.addEventListener('submit', guardarCategoria);
@@ -780,10 +904,16 @@ function mostrarNotificacion(mensaje, tipo = 'success') {
 
 // ===== LOGOUT =====
 document.getElementById("logoutBtn")?.addEventListener("click", () => {
-  if (confirm('¿Cerrar sesión?')) {
-    localStorage.clear();
-    window.location.href = "../index.html";
-  }
+  mostrarModalConfirmacion(
+    'cerrar-sesion',
+    'sesión',
+    'Administrador',
+    'Tendrás que volver a iniciar sesión para acceder al panel.',
+    () => {
+      localStorage.clear();
+      window.location.href = "../index.html";
+    }
+  );
 });
 
 // Estilos para animaciones
