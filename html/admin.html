@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="../css/styles.css" />
   <link rel="stylesheet" href="../css/admin.css">
   <style>
-    /* Estilos adicionales para tablas con descripción */
+    /* Estilos adicionales para tablas */
     td {
       vertical-align: top;
     }
@@ -32,7 +32,7 @@
     <!-- Tabs de navegación -->
     <div class="tabs-container">
       <button class="tab-btn active" data-tab="categorias">📂 Categorías</button>
-      <button class="tab-btn" data-tab="restaurantes">🏪 Restaurantes</button>
+      <button class="tab-btn" data-tab="restaurantes">🍽️ Restaurantes</button>
       <button class="tab-btn" data-tab="platos">🍽️ Platos</button>
       <button class="tab-btn" data-tab="pendientes">⏳ Pendientes</button>
     </div>
@@ -44,18 +44,16 @@
         
         <button class="btn" onclick="abrirModalCategoria()">+ Nueva Categoría</button>
 
-        <div class="table-container">
+         <div class="table-container">
           <table id="categoriasTable">
             <thead>
               <tr>
                 <th>Nombre</th>
-                <th>Descripción</th>
-                <th>Fecha Creación</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody id="categoriasTableBody">
-              <tr><td colspan="4" style="text-align: center;">Cargando...</td></tr>
+              <tr><td colspan="2" style="text-align: center;">Cargando...</td></tr>
             </tbody>
           </table>
         </div>
@@ -65,9 +63,9 @@
     <!-- Tab: Restaurantes -->
     <div id="restaurantes-tab" class="tab-content">
       <div class="admin-card">
-        <h2>🏪 Gestión de Restaurantes</h2>
+        <h2>🍽️ Gestión de Restaurantes</h2>
         
-        <button class="btn" onclick="abrirModalRestaurante()">+ Nuevo Restaurante</button>
+        <button class="btn" onclick="abrirModalRestaurante()">+ Proponer Restaurante</button>
 
         <div class="table-container">
           <table id="restaurantesTable">
@@ -102,12 +100,11 @@
                 <th>Nombre</th>
                 <th>Restaurante</th>
                 <th>Categoría</th>
-                <th>Estado</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody id="platosTableBody">
-              <tr><td colspan="5" style="text-align: center;">Cargando...</td></tr>
+              <tr><td colspan="4" style="text-align: center;">Cargando...</td></tr>
             </tbody>
           </table>
         </div>
@@ -117,9 +114,8 @@
     <!-- Tab: Pendientes -->
     <div id="pendientes-tab" class="tab-content">
       <div class="admin-card">
-        <h2>⏳ Aprobaciones Pendientes</h2>
+        <h2>⏳ Restaurantes Pendientes de Aprobación</h2>
         
-        <h3 style="color: #475569; margin-top: 30px;">Restaurantes Pendientes</h3>
         <div class="table-container">
           <table>
             <thead>
@@ -131,23 +127,6 @@
               </tr>
             </thead>
             <tbody id="restaurantesPendientesBody">
-              <tr><td colspan="4" style="text-align: center;">Cargando...</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <h3 style="color: #475569; margin-top: 30px;">Platos Pendientes</h3>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Restaurante</th>
-                <th>Categoría</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="platosPendientesBody">
               <tr><td colspan="4" style="text-align: center;">Cargando...</td></tr>
             </tbody>
           </table>
@@ -172,11 +151,6 @@
           <input type="text" id="categoriaNombre" placeholder="Ej: Comida rápida" required />
         </div>
 
-        <div class="form-group">
-          <label for="categoriaDescripcion">Descripción</label>
-          <textarea id="categoriaDescripcion" placeholder="Descripción de la categoría..." rows="3"></textarea>
-        </div>
-
         <div style="display: flex; gap: 12px; margin-top: 24px;">
           <button type="submit" class="btn" style="flex: 1;">Guardar</button>
           <button type="button" class="btn secondary" style="flex: 1;" onclick="cerrarModalCategoria()">Cancelar</button>
@@ -189,7 +163,7 @@
   <div id="modalRestaurante" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3 id="modalRestauranteTitulo">Nuevo Restaurante</h3>
+        <h3 id="modalRestauranteTitulo">Proponer Restaurante</h3>
         <button class="close-modal" onclick="cerrarModalRestaurante()">×</button>
       </div>
       
