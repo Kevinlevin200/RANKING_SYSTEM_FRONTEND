@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:4000/api/v1";
+const API_BASE = "https://ranking-system-backend.onrender.com";
 const token = localStorage.getItem("token");
 let adminId = null;
 let editandoCategoria = false;
