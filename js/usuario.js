@@ -80,7 +80,7 @@ async function cargarReseñasUsuario() {
     mostrarCargando('reseñasContainer');
     
     // Intentar obtener reseñas del usuario
-    const res = await fetch(`${API_BASE}/reseña/usuario/${usuarioId}`, {
+    const res = await fetch(`${API_BASE}/resena/usuario/${usuarioId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -295,6 +295,9 @@ async function verDetalle(id) {
     const modal = document.getElementById('restaurantDetailModal');
     const modalBody = document.getElementById('modalBody');
     
+    // 👇 GUARDAR ID DEL RESTAURANTE EN EL MODAL
+    modal.setAttribute('data-restaurante-id', id);
+    
     // Mostrar modal con loading
     modal.style.display = 'flex';
     modalBody.innerHTML = `
@@ -485,18 +488,79 @@ document.getElementById('restaurantDetailModal')?.addEventListener('click', (e) 
   }
 });
 
-// ===== DAR LIKE (Placeholder - sin funcionalidad por ahora) =====
-function darLike(reseñaId) {
-  console.log("Like a reseña:", reseñaId);
-  // TODO: Implementar funcionalidad de like
-  alert('Funcionalidad de Like - Próximamente');
+// ===== DAR LIKE =====
+async function darLike(reseñaId) {
+  if (!usuarioId) {
+    alert('Error: Debes iniciar sesión para dar like.');
+    return;
+  }
+
+  try {
+    console.log("Dando like a reseña:", reseñaId);
+    
+    const res = await fetch(`${API_BASE}/resena/${reseñaId}/like`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify({ usuarioId }),
+    });
+
+    const data = await res.json();
+    
+    if (!res.ok) throw new Error(data.error || 'Error al dar like');
+
+    // Recargar el modal para ver los cambios
+    const modal = document.getElementById('restaurantDetailModal');
+    if (modal.style.display === 'flex') {
+      // Obtener el ID del restaurante del modal actual
+      const restauranteId = modal.getAttribute('data-restaurante-id');
+      if (restauranteId) {
+        await verDetalle(restauranteId);
+      }
+    }
+  } catch (error) {
+    console.error('Error al dar like:', error);
+    alert('❌ Error: ' + error.message);
+  }
 }
 
-// ===== DAR DISLIKE (Placeholder - sin funcionalidad por ahora) =====
-function darDislike(reseñaId) {
-  console.log("Dislike a reseña:", reseñaId);
-  // TODO: Implementar funcionalidad de dislike
-  alert('Funcionalidad de Dislike - Próximamente');
+// ===== DAR DISLIKE =====
+async function darDislike(reseñaId) {
+  if (!usuarioId) {
+    alert('Error: Debes iniciar sesión para dar dislike.');
+    return;
+  }
+
+  try {
+    console.log("Dando dislike a reseña:", reseñaId);
+    
+    const res = await fetch(`${API_BASE}/resena/${reseñaId}/dislike`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify({ usuarioId }),
+    });
+
+    const data = await res.json();
+    
+    if (!res.ok) throw new Error(data.error || 'Error al dar dislike');
+
+    // Recargar el modal para ver los cambios
+    const modal = document.getElementById('restaurantDetailModal');
+    if (modal.style.display === 'flex') {
+      const restauranteId = modal.getAttribute('data-restaurante-id');
+      if (restauranteId) {
+        await verDetalle(restauranteId);
+      }
+    }
+  } catch (error) {
+    console.error('Error al dar dislike:', error);
+    alert('❌ Error: ' + error.message);
+  }
 }
 
 // ===== CREAR RESEÑA =====
@@ -522,7 +586,7 @@ async function crearReseña(restauranteId) {
   try {
     console.log("Creando reseña:", { restauranteId, comentario, calificacion, usuarioId });
     
-    const res = await fetch(`${API_BASE}/reseña/registrar`, {
+    const res = await fetch(`${API_BASE}/resena/registrar`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -565,7 +629,7 @@ async function editarReseña(id, restauranteId, comentarioActual, calificacionAc
   }
 
   try {
-    const res = await fetch(`${API_BASE}/reseña/${id}`, {
+    const res = await fetch(`${API_BASE}/resena/${id}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -599,7 +663,7 @@ async function eliminarReseña(id, restauranteId) {
   if (!confirm("¿Eliminar esta reseña?")) return;
 
   try {
-    const res = await fetch(`${API_BASE}/reseña/${id}`, {
+    const res = await fetch(`${API_BASE}/resena/${id}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
