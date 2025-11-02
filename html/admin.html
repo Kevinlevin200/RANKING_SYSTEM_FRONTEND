@@ -6,6 +6,17 @@
   <title>Panel de Administración - RestauRank</title>
   <link rel="stylesheet" href="../css/styles.css" />
   <link rel="stylesheet" href="../css/admin.css">
+  <style>
+    /* Estilos adicionales para tablas con descripción */
+    td {
+      vertical-align: top;
+    }
+    
+    td[style*="max-width"] {
+      word-wrap: break-word;
+      white-space: normal;
+    }
+  </style>
 </head>
 <body>
   <div class="admin-container">
@@ -31,19 +42,7 @@
       <div class="admin-card">
         <h2>📂 Gestión de Categorías</h2>
         
-        <form id="categoriaForm">
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="categoriaNombre">Nombre de la categoría *</label>
-              <input type="text" id="categoriaNombre" placeholder="Ej: Comida rápida" required />
-            </div>
-            <div class="form-group">
-              <label for="categoriaDescripcion">Descripción</label>
-              <input type="text" id="categoriaDescripcion" placeholder="Descripción breve" />
-            </div>
-          </div>
-          <button type="submit" class="btn">Crear Categoría</button>
-        </form>
+        <button class="btn" onclick="abrirModalCategoria()">+ Nueva Categoría</button>
 
         <div class="table-container">
           <table id="categoriasTable">
@@ -51,11 +50,12 @@
               <tr>
                 <th>Nombre</th>
                 <th>Descripción</th>
+                <th>Fecha Creación</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody id="categoriasTableBody">
-              <tr><td colspan="3" style="text-align: center;">Cargando...</td></tr>
+              <tr><td colspan="4" style="text-align: center;">Cargando...</td></tr>
             </tbody>
           </table>
         </div>
@@ -101,7 +101,7 @@
               <tr>
                 <th>Nombre</th>
                 <th>Restaurante</th>
-                <th>Precio</th>
+                <th>Categoría</th>
                 <th>Estado</th>
                 <th>Acciones</th>
               </tr>
@@ -143,7 +143,7 @@
               <tr>
                 <th>Nombre</th>
                 <th>Restaurante</th>
-                <th>Precio</th>
+                <th>Categoría</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -153,6 +153,35 @@
           </table>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal Categoría -->
+  <div id="modalCategoria" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalCategoriaTitulo">Nueva Categoría</h3>
+        <button class="close-modal" onclick="cerrarModalCategoria()">×</button>
+      </div>
+      
+      <form id="categoriaForm">
+        <input type="hidden" id="categoriaId" />
+        
+        <div class="form-group">
+          <label for="categoriaNombre">Nombre de la categoría *</label>
+          <input type="text" id="categoriaNombre" placeholder="Ej: Comida rápida" required />
+        </div>
+
+        <div class="form-group">
+          <label for="categoriaDescripcion">Descripción</label>
+          <textarea id="categoriaDescripcion" placeholder="Descripción de la categoría..." rows="3"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 24px;">
+          <button type="submit" class="btn" style="flex: 1;">Guardar</button>
+          <button type="button" class="btn secondary" style="flex: 1;" onclick="cerrarModalCategoria()">Cancelar</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -220,6 +249,9 @@
           <select id="platoRestaurante" required>
             <option value="">Selecciona un restaurante</option>
           </select>
+          <small style="color: #64748b; font-size: 0.85rem; margin-top: 4px; display: block;">
+            La ubicación se heredará automáticamente del restaurante
+          </small>
         </div>
 
         <div class="form-group">
@@ -232,16 +264,9 @@
           <textarea id="platoDescripcion" placeholder="Describe el plato..." required></textarea>
         </div>
 
-        <div class="form-grid">
-          <div class="form-group">
-            <label for="platoPrecio">Precio *</label>
-            <input type="number" id="platoPrecio" placeholder="0.00" min="0" step="0.01" required />
-          </div>
-
-          <div class="form-group">
-            <label for="platoCategoria">Categoría</label>
-            <input type="text" id="platoCategoria" placeholder="Ej: Plato fuerte" />
-          </div>
+        <div class="form-group">
+          <label for="platoCategoria">Categoría *</label>
+          <input type="text" id="platoCategoria" placeholder="Ej: Plato fuerte, Entrada, Postre..." required />
         </div>
 
         <div class="form-group">
@@ -254,6 +279,42 @@
           <button type="button" class="btn secondary" style="flex: 1;" onclick="cerrarModalPlato()">Cancelar</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmación para Eliminar -->
+  <div id="modalConfirmarEliminar" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 style="color: #ef4444;">⚠️ Confirmar Eliminación</h3>
+        <button class="close-modal" onclick="cerrarModalConfirmar()">×</button>
+      </div>
+      
+      <div style="padding: 20px 0;">
+        <div style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); padding: 20px; border-radius: 12px; border-left: 5px solid #ef4444; margin-bottom: 20px;">
+          <p style="margin: 0; color: #991b1b; font-size: 1.05rem; line-height: 1.6;" id="mensajeConfirmacion">
+            ¿Estás seguro de que deseas eliminar este elemento?
+          </p>
+        </div>
+
+        <div id="detalleElemento" style="background: #f8fafc; padding: 16px; border-radius: 10px; margin-bottom: 20px;">
+          <!-- Aquí se mostrará la información del elemento a eliminar -->
+        </div>
+
+        <p style="color: #64748b; font-size: 0.95rem; text-align: center;">
+          <strong>Esta acción no se puede deshacer.</strong>
+        </p>
+      </div>
+
+      <div style="display: flex; gap: 12px;">
+        <button class="btn" onclick="confirmarEliminacion()" 
+          style="flex: 1; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+          🗑️ Sí, Eliminar
+        </button>
+        <button class="btn secondary" onclick="cerrarModalConfirmar()" style="flex: 1;">
+          ✖️ Cancelar
+        </button>
+      </div>
     </div>
   </div>
 

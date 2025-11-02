@@ -1,8 +1,13 @@
 const API_BASE = "http://localhost:4000/api/v1";
 const token = localStorage.getItem("token");
 let adminId = null;
+let editandoCategoria = false;
 let editandoRestaurante = false;
 let editandoPlato = false;
+
+// Variables para el modal de confirmación
+let elementoAEliminar = null;
+let tipoElementoAEliminar = null;
 
 console.log("admin.js cargado, token:", token);
 
@@ -42,7 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     configurarTabs();
     configurarFormularios();
     
-    console.log("Admin panel completamente cargado");
+    console.log("✅ Admin panel completamente cargado");
   } catch (error) {
     console.error('Error en inicialización:', error);
     alert('Error al cargar el panel de administración');
@@ -70,22 +75,13 @@ async function verificarSesionAdmin() {
     }
 
     const data = await res.json();
-    console.log("📦 Datos completos recibidos:", data);
-    console.log("📦 Estructura data.usuario:", data.usuario);
-    
-    // ⭐ OBTENER EL TIPO DE USUARIO DE FORMA MÁS FLEXIBLE
     const usuario = data.usuario || data;
     const tipo = usuario.tipo;
     
-    console.log("🎯 Usuario extraído:", usuario);
     console.log("🎯 Tipo detectado:", tipo);
-    console.log("🎯 Email:", usuario.email);
-    console.log("🎯 Usuario nombre:", usuario.usuario);
     
-    // ⭐ VALIDAR TIPO (admin o empleado)
     if (tipo !== 'admin') {
       console.error("❌ Acceso denegado - Tipo de usuario:", tipo);
-      console.error("❌ Se requiere tipo: 'admin'");
       return null;
     }
 
@@ -104,7 +100,6 @@ async function verificarSesionAdmin() {
     return usuario;
   } catch (error) {
     console.error('❌ Error en verificación:', error);
-    console.error('❌ Stack:', error.stack);
     return null;
   }
 }
@@ -145,19 +140,22 @@ async function cargarCategorias() {
     tbody.innerHTML = '';
 
     if (!categorias || categorias.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #64748b;">No hay categorías registradas</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #64748b;">No hay categorías registradas</td></tr>';
       return;
     }
 
     categorias.forEach(cat => {
       const tr = document.createElement('tr');
+      const fecha = cat.creadoEn ? new Date(cat.creadoEn).toLocaleDateString('es-ES') : 'N/A';
+      
       tr.innerHTML = `
         <td><strong>${cat.nombre}</strong></td>
-        <td>${cat.descripcion || 'Sin descripción'}</td>
+        <td style="max-width: 300px;">${cat.descripcion || '<em style="color: #94a3b8;">Sin descripción</em>'}</td>
+        <td>${fecha}</td>
         <td>
           <div class="action-buttons">
-            <button class="btn-small btn-edit" onclick="editarCategoria('${cat._id}', '${cat.nombre.replace(/'/g, "\\'")}')">✏️ Editar</button>
-            <button class="btn-small btn-delete" onclick="eliminarCategoria('${cat._id}')">🗑️ Eliminar</button>
+            <button class="btn-small btn-edit" onclick="editarCategoria('${cat._id}', '${cat.nombre.replace(/'/g, "\\'")}', '${(cat.descripcion || '').replace(/'/g, "\\'")}')">✏️ Editar</button>
+            <button class="btn-small btn-delete" onclick="eliminarCategoriaDirecto('${cat._id}', '${cat.nombre.replace(/'/g, "\\'")}', '${(cat.descripcion || '').replace(/'/g, "\\'")}')">🗑️ Eliminar</button>
           </div>
         </td>
       `;
@@ -184,32 +182,64 @@ function actualizarSelectCategorias(categorias) {
   });
 }
 
-async function crearCategoria(e) {
+// ===== MODAL CATEGORÍA =====
+function abrirModalCategoria() {
+  editandoCategoria = false;
+  document.getElementById('modalCategoriaTitulo').textContent = 'Nueva Categoría';
+  document.getElementById('categoriaForm')?.reset();
+  document.getElementById('categoriaId').value = '';
+  document.getElementById('modalCategoria')?.classList.add('active');
+}
+
+function cerrarModalCategoria() {
+  document.getElementById('modalCategoria')?.classList.remove('active');
+}
+
+function editarCategoria(id, nombre, descripcion) {
+  editandoCategoria = true;
+  document.getElementById('modalCategoriaTitulo').textContent = 'Editar Categoría';
+  document.getElementById('categoriaId').value = id;
+  document.getElementById('categoriaNombre').value = nombre;
+  document.getElementById('categoriaDescripcion').value = descripcion;
+  document.getElementById('modalCategoria')?.classList.add('active');
+}
+
+async function guardarCategoria(e) {
   e.preventDefault();
   
-  const nombre = document.getElementById('categoriaNombre')?.value.trim();
+  const id = document.getElementById('categoriaId')?.value;
+  const datos = {
+    nombre: document.getElementById('categoriaNombre')?.value.trim(),
+    descripcion: document.getElementById('categoriaDescripcion')?.value.trim()
+  };
 
-  if (!nombre) {
+  if (!datos.nombre) {
     mostrarNotificacion('El nombre es obligatorio', 'error');
     return;
   }
 
   try {
-    const res = await fetch(`${API_BASE}/categoria/registrar`, {
-      method: 'POST',
+    const url = editandoCategoria 
+      ? `${API_BASE}/categoria/${id}` 
+      : `${API_BASE}/categoria/registrar`;
+    
+    const method = editandoCategoria ? 'PATCH' : 'POST';
+
+    const res = await fetch(url, {
+      method,
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ nombre })
+      body: JSON.stringify(datos)
     });
 
     const data = await res.json();
 
-    if (!res.ok) throw new Error(data.error || 'Error al crear categoría');
+    if (!res.ok) throw new Error(data.error || 'Error al guardar categoría');
 
-    mostrarNotificacion('✅ Categoría creada exitosamente', 'success');
-    document.getElementById('categoriaForm')?.reset();
+    mostrarNotificacion(`✅ Categoría ${editandoCategoria ? 'actualizada' : 'creada'} exitosamente`, 'success');
+    cerrarModalCategoria();
     await cargarCategorias();
   } catch (error) {
     console.error('Error:', error);
@@ -217,34 +247,13 @@ async function crearCategoria(e) {
   }
 }
 
-async function editarCategoria(id, nombreActual) {
-  const nuevoNombre = prompt('Nuevo nombre:', nombreActual);
-  if (!nuevoNombre || nuevoNombre === nombreActual) return;
-
-  try {
-    const res = await fetch(`${API_BASE}/categoria/${id}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ nombre: nuevoNombre })
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) throw new Error(data.error || 'Error al editar');
-
-    mostrarNotificacion('✅ Categoría actualizada', 'success');
-    await cargarCategorias();
-  } catch (error) {
-    mostrarNotificacion(error.message, 'error');
+function eliminarCategoriaDirecto(id, nombre, descripcion) {
+  if (confirm(`¿Estás seguro de eliminar la categoría "${nombre}"?\n\nLos restaurantes asociados perderán esta categoría.`)) {
+    eliminarCategoria(id);
   }
 }
 
 async function eliminarCategoria(id) {
-  if (!confirm('¿Eliminar esta categoría?')) return;
-
   try {
     const res = await fetch(`${API_BASE}/categoria/${id}`, {
       method: 'DELETE',
@@ -255,10 +264,11 @@ async function eliminarCategoria(id) {
 
     if (!res.ok) throw new Error(data.error || 'Error al eliminar');
 
-    mostrarNotificacion('✅ Categoría eliminada', 'success');
+    mostrarNotificacion('✅ Categoría eliminada exitosamente', 'success');
     await cargarCategorias();
   } catch (error) {
-    mostrarNotificacion(error.message, 'error');
+    console.error('Error al eliminar categoría:', error);
+    mostrarNotificacion('❌ ' + error.message, 'error');
   }
 }
 
@@ -288,6 +298,7 @@ async function cargarRestaurantes() {
 
     restaurantes.forEach(rest => {
       const tr = document.createElement('tr');
+      
       tr.innerHTML = `
         <td><strong>${rest.nombre}</strong></td>
         <td>${rest.categoria || 'Sin categoría'}</td>
@@ -301,7 +312,7 @@ async function cargarRestaurantes() {
           <div class="action-buttons">
             ${!rest.aprobado ? `<button class="btn-small btn-approve" onclick="aprobarRestaurante('${rest._id}')">✓ Aprobar</button>` : ''}
             <button class="btn-small btn-edit" onclick="editarRestaurante('${rest._id}')">✏️</button>
-            <button class="btn-small btn-delete" onclick="eliminarRestaurante('${rest._id}')">🗑️</button>
+            <button class="btn-small btn-delete" onclick="eliminarRestauranteDirecto('${rest._id}', '${rest.nombre.replace(/'/g, "\\'")}')">🗑️</button>
           </div>
         </td>
       `;
@@ -427,9 +438,13 @@ async function aprobarRestaurante(id) {
   }
 }
 
-async function eliminarRestaurante(id) {
-  if (!confirm('¿Eliminar este restaurante?')) return;
+function eliminarRestauranteDirecto(id, nombre) {
+  if (confirm(`¿Estás seguro de eliminar el restaurante "${nombre}"?\n\nTambién se eliminarán todos sus platos y reseñas asociados.`)) {
+    eliminarRestaurante(id);
+  }
+}
 
+async function eliminarRestaurante(id) {
   try {
     const res = await fetch(`${API_BASE}/restaurantes/${id}`, {
       method: 'DELETE',
@@ -438,10 +453,12 @@ async function eliminarRestaurante(id) {
 
     if (!res.ok) throw new Error('Error al eliminar');
 
-    mostrarNotificacion('✅ Restaurante eliminado', 'success');
+    mostrarNotificacion('✅ Restaurante eliminado exitosamente', 'success');
     await cargarRestaurantes();
+    await cargarPendientes();
   } catch (error) {
-    mostrarNotificacion(error.message, 'error');
+    console.error('Error al eliminar restaurante:', error);
+    mostrarNotificacion('❌ ' + error.message, 'error');
   }
 }
 
@@ -450,56 +467,59 @@ async function cargarPlatos() {
   try {
     console.log("Cargando platos...");
     
-    const res = await fetch(`${API_BASE}/restaurantes/`, {
+    const res = await fetch(`${API_BASE}/platos/`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    if (!res.ok) throw new Error('Error al cargar datos');
+    if (!res.ok) throw new Error('Error al cargar platos');
 
-    const restaurantes = await res.json();
+    const platos = await res.json();
+    console.log("Platos cargados:", platos.length);
+    
     const tbody = document.getElementById('platosTableBody');
     if (!tbody) return;
     
     tbody.innerHTML = '';
-    let totalPlatos = 0;
 
-    for (const rest of restaurantes) {
-      try {
-        const platosRes = await fetch(`${API_BASE}/platos/restaurante/${rest._id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (platosRes.ok) {
-          const platos = await platosRes.json();
-          
-          platos.forEach(plato => {
-            totalPlatos++;
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td><strong>${plato.nombre}</strong></td>
-              <td>${rest.nombre}</td>
-              <td>${plato.categoria || 'N/A'}</td>
-              <td><span class="badge badge-approved">✓ Activo</span></td>
-              <td>
-                <div class="action-buttons">
-                  <button class="btn-small btn-edit" onclick="editarPlato('${plato._id}')">✏️</button>
-                  <button class="btn-small btn-delete" onclick="eliminarPlato('${plato._id}')">🗑️</button>
-                </div>
-              </td>
-            `;
-            tbody.appendChild(tr);
-          });
-        }
-      } catch (err) {
-        console.error(`Error cargando platos de ${rest.nombre}:`, err);
-      }
-    }
-
-    if (totalPlatos === 0) {
+    if (!platos || platos.length === 0) {
       tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No hay platos registrados</td></tr>';
+      return;
     }
+
+    // Cargar restaurantes para mostrar nombres
+    const restaurantesRes = await fetch(`${API_BASE}/restaurantes/`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const restaurantes = restaurantesRes.ok ? await restaurantesRes.json() : [];
+    
+    // Crear mapa de restaurantes por ID
+    const restaurantesMap = {};
+    restaurantes.forEach(r => {
+      restaurantesMap[r._id] = r.nombre;
+    });
+
+    platos.forEach(plato => {
+      const nombreRestaurante = restaurantesMap[plato.restauranteId] || 'Restaurante desconocido';
+      
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>${plato.nombre}</strong></td>
+        <td>${nombreRestaurante}</td>
+        <td>${plato.categoria || 'N/A'}</td>
+        <td><span class="badge badge-approved">✓ Activo</span></td>
+        <td>
+          <div class="action-buttons">
+            <button class="btn-small btn-edit" onclick="editarPlato('${plato._id}')">✏️</button>
+            <button class="btn-small btn-delete" onclick="eliminarPlatoDirecto('${plato._id}', '${plato.nombre.replace(/'/g, "\\'")}')">🗑️</button>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
   } catch (error) {
     console.error('Error al cargar platos:', error);
+    mostrarNotificacion('Error al cargar platos', 'error');
   }
 }
 
@@ -544,16 +564,24 @@ async function guardarPlato(e) {
   e.preventDefault();
 
   const id = document.getElementById('platoId')?.value;
+  const restauranteId = document.getElementById('platoRestaurante')?.value;
+  
+  if (!restauranteId) {
+    mostrarNotificacion('Selecciona un restaurante', 'error');
+    return;
+  }
+
+  const imagenInput = document.getElementById('platoImagen')?.value.trim();
+  
   const datos = {
-    restauranteId: document.getElementById('platoRestaurante')?.value,
+    restauranteId: restauranteId,
     nombre: document.getElementById('platoNombre')?.value.trim(),
     descripcion: document.getElementById('platoDescripcion')?.value.trim(),
     categoria: document.getElementById('platoCategoria')?.value.trim(),
-    ubicacion: "Ubicación del restaurante",
-    imagen: document.getElementById('platoImagen')?.value.trim() || null
+    imagen: imagenInput || null // null si está vacío
   };
 
-  if (!datos.restauranteId || !datos.nombre || !datos.descripcion || !datos.categoria) {
+  if (!datos.nombre || !datos.descripcion || !datos.categoria) {
     mostrarNotificacion('Completa todos los campos obligatorios', 'error');
     return;
   }
@@ -564,6 +592,8 @@ async function guardarPlato(e) {
       : `${API_BASE}/platos/registrar`;
     
     const method = editandoPlato ? 'PATCH' : 'POST';
+
+    console.log('Enviando datos del plato:', datos);
 
     const res = await fetch(url, {
       method,
@@ -576,19 +606,31 @@ async function guardarPlato(e) {
 
     const data = await res.json();
 
-    if (!res.ok) throw new Error(data.error || 'Error al guardar');
+    if (!res.ok) {
+      console.error('Error del servidor:', data);
+      // Mostrar el mensaje de error completo si está disponible
+      const errorMsg = data.errors 
+        ? data.errors.map(e => e.msg || e.message).join(', ')
+        : data.error || 'Error al guardar';
+      throw new Error(errorMsg);
+    }
 
     mostrarNotificacion(`✅ Plato ${editandoPlato ? 'actualizado' : 'creado'}`, 'success');
     cerrarModalPlato();
     await cargarPlatos();
   } catch (error) {
+    console.error('Error completo:', error);
     mostrarNotificacion(error.message, 'error');
   }
 }
 
-async function eliminarPlato(id) {
-  if (!confirm('¿Eliminar este plato?')) return;
+function eliminarPlatoDirecto(id, nombre) {
+  if (confirm(`¿Estás seguro de eliminar el plato "${nombre}"?`)) {
+    eliminarPlato(id);
+  }
+}
 
+async function eliminarPlato(id) {
   try {
     const res = await fetch(`${API_BASE}/platos/${id}`, {
       method: 'DELETE',
@@ -597,10 +639,11 @@ async function eliminarPlato(id) {
 
     if (!res.ok) throw new Error('Error al eliminar');
 
-    mostrarNotificacion('✅ Plato eliminado', 'success');
+    mostrarNotificacion('✅ Plato eliminado exitosamente', 'success');
     await cargarPlatos();
   } catch (error) {
-    mostrarNotificacion(error.message, 'error');
+    console.error('Error al eliminar plato:', error);
+    mostrarNotificacion('❌ ' + error.message, 'error');
   }
 }
 
@@ -631,7 +674,7 @@ async function cargarPendientes() {
               <td>
                 <div class="action-buttons">
                   <button class="btn-small btn-approve" onclick="aprobarRestaurante('${rest._id}')">✓ Aprobar</button>
-                  <button class="btn-small btn-delete" onclick="eliminarRestaurante('${rest._id}')">✗ Rechazar</button>
+                  <button class="btn-small btn-delete" onclick="eliminarRestauranteDirecto('${rest._id}', '${rest.nombre.replace(/'/g, "\\'")}')">✗ Rechazar</button>
                 </div>
               </td>
             `;
@@ -652,7 +695,7 @@ async function cargarPendientes() {
 
 // ===== CONFIGURAR FORMULARIOS =====
 function configurarFormularios() {
-  document.getElementById('categoriaForm')?.addEventListener('submit', crearCategoria);
+  document.getElementById('categoriaForm')?.addEventListener('submit', guardarCategoria);
   document.getElementById('restauranteForm')?.addEventListener('submit', guardarRestaurante);
   document.getElementById('platoForm')?.addEventListener('submit', guardarPlato);
 }
