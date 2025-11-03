@@ -1,74 +1,88 @@
 # RANKING\_SYSTEM\_FRONTEND
 
-## Descripción del Proyecto
+[](https://github.com/Kevinlevin200/RANKING_SYSTEM_FRONTEND)
+[](https://github.com/Kevinlevin200/RANKING_SYSTEM_FRONTEND)
+[](https://www.google.com/search?q=https://github.com/Kevinlevin200/RANKING_SYSTEM_FRONTEND/commits/main)
 
-Este proyecto es la interfaz de usuario (*frontend*) para un **Sistema de Clasificación (Ranking System)**. Su propósito es visualizar y permitir la interacción con los datos de clasificación proporcionados por un *backend* a través de una API REST.
+## 📝 Descripción del Proyecto
 
-La aplicación está construida utilizando tecnologías web estándar (HTML, CSS y JavaScript), lo que garantiza un funcionamiento ligero y una fácil implementación.
+Este es el cliente web (*frontend*) del **Sistema de Clasificación (Ranking System)**, una aplicación diseñada para gestionar, calificar y clasificar restaurantes y sus platos. La interfaz se encarga de la presentación de datos, la gestión de sesiones de usuario y la interacción directa con la API REST del *backend*.
 
-## Tecnologías Utilizadas
+## 🚀 Tecnologías Utilizadas
 
-  * **HTML5:** Estructura de la aplicación.
-  * **CSS3:** Estilos y presentación.
-  * **JavaScript (Vanilla JS):** Lógica del cliente, manejo de eventos y consumo de *endpoints* de la API.
+  * **HTML5, CSS3, JavaScript (Vanilla JS):** Utilizado para construir una interfaz ligera y funcional.
+  * **Consumo de API:** Uso de `fetch` API para interactuar con los servicios del *backend*.
 
-## Estructura del Proyecto
-
-El repositorio sigue una estructura simple y modular:
-
-```
-RANKING_SYSTEM_FRONTEND/
-├── css/              # Hojas de estilo
-├── html/             # Componentes o vistas HTML secundarias
-├── js/               # Archivos JavaScript con la lógica de la aplicación
-├── index.html        # Página principal de la aplicación
-└── README.md         # Documentación del proyecto
-```
-
-## Endpoints de la API Consumidos
-
-El *frontend* interactúa con la lógica de clasificación del *backend* consumiendo los siguientes *endpoints*. Es crucial que el servidor *backend* esté corriendo y accesible en la base URL configurada (ej. `http://localhost:8080` o la dirección de despliegue).
-
-| Funcionalidad | Método HTTP | Endpoint (asumiendo la base URL del backend) | Descripción |
-| :--- | :--- | :--- | :--- |
-| **Obtener Ranking** | `GET` | `/ranking` | Recupera la lista completa de clasificaciones o datos. |
-| **Actualizar Puntuación**| `PUT` | `/ranking/{id}` | Actualiza la puntuación de un usuario o elemento específico en el ranking. |
-| **Añadir Usuario/Elemento**| `POST` | `/ranking` | Agrega un nuevo elemento/jugador a la tabla de clasificación. |
-| **Eliminar Usuario/Elemento**| `DELETE` | `/ranking/{id}` | Elimina un elemento/jugador del ranking. |
-
-> **Nota:** La implementación de los *endpoints* está detallada dentro de los archivos JavaScript del directorio `js/`.
-
-## Instalación y Ejecución Local
-
-Sigue estos pasos para levantar la aplicación en tu entorno local:
+## ⚙️ Configuración y Ejecución Local
 
 ### 1\. Requisitos
 
-Asegúrate de tener un navegador web moderno (Chrome, Firefox, Edge) instalado.
+  * Tener operativo el **RANKING\_SYSTEM\_BACKEND** (Servidor Node.js) en un puerto accesible (ej. `http://localhost:4000/api/v1`).
 
 ### 2\. Clonar el Repositorio
-
-Abre tu terminal y clona el proyecto:
 
 ```bash
 git clone https://github.com/Kevinlevin200/RANKING_SYSTEM_FRONTEND.git
 cd RANKING_SYSTEM_FRONTEND
 ```
 
-### 3\. Configuración del Backend
+### 3\. Ejecutar el Frontend
 
-Esta aplicación requiere que el servicio de *backend* asociado esté operativo para poder funcionar correctamente y mostrar los datos.
+Dado que es una aplicación de *Vanilla JS*, solo necesitas un servidor web simple para evitar problemas de CORS y cargar el contenido localmente.
 
-  * **Asegúrate de que el *backend* se esté ejecutando.**
-  * **Verifica la URL:** El código JavaScript del *frontend* debe apuntar a la base URL correcta del *backend* (p. ej., si el *backend* corre en `http://localhost:8080`, esa debe ser la URL configurada para las llamadas `fetch`).
+  * **Opción Recomendada:** Usar una extensión como **Live Server** en VS Code.
+  * **Opción Alternativa:** Abre `index.html` directamente en tu navegador.
 
-### 4\. Ejecutar el Frontend
+> **Importante:** Asegúrate de que todas las llamadas `fetch` en los archivos `js/` apunten a la URL base correcta del *backend* (`http://localhost:4000/api/v1` para desarrollo).
 
-Dado que es una aplicación de HTML, CSS y JavaScript puro, no requiere un proceso de *build* complejo.
+## 🌐 Consumo de API (Endpoints del Backend)
 
-Simplemente abre el archivo `index.html` en tu navegador:
+El *frontend* se comunica con la API REST del *backend*, cuya documentación completa es la **Ranking System API**. La URL base para todas las peticiones es `http://localhost:4000/api/v1`.
 
-1.  Navega a la carpeta principal del proyecto.
-2.  Haz doble clic en `index.html`.
+### 🔒 Servicios de Usuarios y Autenticación
 
-Alternativamente, puedes usar una extensión de servidor local simple (como **Live Server** en VS Code) para evitar problemas de CORS al consumir la API.
+| Funcionalidad | Método | Ruta Completa | Seguridad |
+| :--- | :--- | :--- | :--- |
+| **Registro** | `POST` | `/api/v1/usuarios/registrar` | Pública |
+| **Login** | `POST` | `/api/v1/usuarios/login` | Pública |
+| **Verificar Sesión** | `GET` | `/api/v1/usuarios/verificar-sesion` | **Requiere JWT** |
+| **Cambiar Contraseña** | `PATCH` | `/api/v1/usuarios/cambiar-contraseña` | **Requiere JWT** |
+
+### 📊 Servicios de Ranking y Consulta
+
+El Ranking es la funcionalidad principal, permitiendo mostrar los resultados ordenados.
+
+| Funcionalidad | Método | Ruta Completa | Parámetros |
+| :--- | :--- | :--- | :--- |
+| **Ranking General** | `GET` | `/api/v1/ranking/ranking` | Ninguno |
+| **Ranking por Categoría** | `GET` | `/api/v1/ranking/categoria/{categoria}` | `:categoria` (en ruta) |
+| **Detalle de Restaurante** | `GET` | `/api/v1/ranking/detalle/{id}` | `:id` (ID del restaurante en ruta) |
+
+### 🍽️ Servicios de Restaurantes y Platos (Consulta Pública)
+
+| Funcionalidad | Método | Ruta Completa | Parámetros |
+| :--- | :--- | :--- | :--- |
+| **Listar Restaurantes** | `GET` | `/api/v1/restaurantes` | Ninguno |
+| **Obtener Restaurante por ID** | `GET` | `/api/v1/restaurantes/{id}` | `:id` (en ruta) |
+| **Listar Platos** | `GET` | `/api/v1/platos` | Ninguno |
+| **Listar Platos por Restaurante** | `GET` | `/api/v1/platos/restaurante/{restauranteId}` | `:restauranteId` (en ruta) |
+
+### ⭐ Servicios de Reseñas e Interacción
+
+| Funcionalidad | Método | Ruta Completa | Seguridad |
+| :--- | :--- | :--- | :--- |
+| **Crear Reseña** | `POST` | `/api/v1/resena/registrar` | **Requiere JWT** |
+| **Listar Reseñas de Usuario** | `GET` | `/api/v1/resena/usuario/{usuarioId}` | **Requiere JWT** |
+| **Dar Like a Reseña** | `POST` | `/api/v1/resena/{id}/like` | **Requiere JWT** |
+| **Dar Dislike a Reseña** | `POST` | `/api/v1/resena/{id}/dislike` | **Requiere JWT** |
+
+### ➕ Servicios Administrativos y de Gestión (Requieren JWT)
+
+El *frontend* también puede interactuar con endpoints de gestión, típicamente para usuarios con rol `admin`.
+
+| Funcionalidad | Método | Ruta Completa |
+| :--- | :--- | :--- |
+| **Registrar Categoría** | `POST` | `/api/v1/categoria/registrar` |
+| **Registrar Plato** | `POST` | `/api/v1/platos/registrar` |
+| **Modificar Restaurante** | `PATCH` | `/api/v1/restaurantes/{id}` |
+| **Eliminar Restaurante** | `DELETE` | `/api/v1/restaurantes/{id}` |
