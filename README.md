@@ -1,88 +1,141 @@
-# RANKING\_SYSTEM\_FRONTEND
+<!-- RANKING SYSTEM FRONTEND README -->
+<p align="center">
+  <img src="https://img.shields.io/badge/Proyecto%20Final-Ranking%20System-3b82f6?style=for-the-badge&logo=starship&logoColor=white" alt="Ranking System Badge">
+</p>
 
-[](https://github.com/Kevinlevin200/RANKING_SYSTEM_FRONTEND)
-[](https://github.com/Kevinlevin200/RANKING_SYSTEM_FRONTEND)
-[](https://www.google.com/search?q=https://github.com/Kevinlevin200/RANKING_SYSTEM_FRONTEND/commits/main)
+<h1 align="center">🍽️ RANKING SYSTEM — Frontend</h1>
 
-## 📝 Descripción del Proyecto
+<p align="center">
+  <b>Aplicación web para la clasificación y valoración de restaurantes.</b><br>
+  Proyecto académico desarrollado con HTML, CSS y JavaScript puro.<br><br>
+  <a href="https://github.com/Kevinlevin200/RANKING_SYSTEM_FRONTEND">
+    <img src="https://img.shields.io/badge/GitHub-Kevinlevin200%2FRANKING__SYSTEM__FRONTEND-black?style=flat&logo=github">
+  </a>
+  <a href="https://github.com/Kevinlevin200/RANKING_SYSTEM_BACKEND">
+    <img src="https://img.shields.io/badge/Backend-RANKING__SYSTEM__BACKEND-16a34a?style=flat&logo=node.js">
+  </a>
+  <a href="http://localhost:4000/api/v1/docs">
+    <img src="https://img.shields.io/badge/API%20Docs-Swagger%20UI-ffb703?style=flat&logo=swagger">
+  </a>
+</p>
 
-Este es el cliente web (*frontend*) del **Sistema de Clasificación (Ranking System)**, una aplicación diseñada para gestionar, calificar y clasificar restaurantes y sus platos. La interfaz se encarga de la presentación de datos, la gestión de sesiones de usuario y la interacción directa con la API REST del *backend*.
+---
 
-## 🚀 Tecnologías Utilizadas
+## 🧭 Descripción General
 
-  * **HTML5, CSS3, JavaScript (Vanilla JS):** Utilizado para construir una interfaz ligera y funcional.
-  * **Consumo de API:** Uso de `fetch` API para interactuar con los servicios del *backend*.
+El **Ranking System Frontend** es la capa de presentación del proyecto **Ranking System**, una plataforma que permite a los usuarios **explorar, calificar y reseñar restaurantes y platos** de forma dinámica e interactiva.
 
-## ⚙️ Configuración y Ejecución Local
+La aplicación se comunica directamente con la API REST del backend, mostrando en tiempo real la información de restaurantes, rankings, categorías y valoraciones.
 
-### 1\. Requisitos
 
-  * Tener operativo el **RANKING\_SYSTEM\_BACKEND** (Servidor Node.js) en un puerto accesible (ej. `http://localhost:4000/api/v1`).
+---
 
-### 2\. Clonar el Repositorio
+## 🧰 Tecnologías Utilizadas
+
+<p align="center">
+  <img src="https://img.shields.io/badge/HTML5-e34f26?style=for-the-badge&logo=html5&logoColor=white">
+  <img src="https://img.shields.io/badge/CSS3-264de4?style=for-the-badge&logo=css3&logoColor=white">
+  <img src="https://img.shields.io/badge/JavaScript-f7df1e?style=for-the-badge&logo=javascript&logoColor=black">
+  <img src="https://img.shields.io/badge/Fetch%20API-0a9396?style=for-the-badge&logo=api&logoColor=white">
+</p>
+
+| Tecnología | Propósito |
+|-------------|------------|
+| **HTML5 / CSS3 / JS (Vanilla)** | Construcción de una interfaz limpia y ligera sin frameworks. |
+| **Fetch API** | Comunicación con el backend mediante peticiones HTTP. |
+| **JWT Tokens** | Manejo de sesiones seguras y autenticación. |
+| **Live Server (VS Code)** | Servidor local para desarrollo rápido. |
+
+---
+
+## ⚙️ Estructura del Proyecto
+
+📂 RANKING_SYSTEM_FRONTEND
+├── 📁 assets/ → Recursos gráficos (imágenes, íconos)
+├── 📁 css/ → Hojas de estilo personalizadas
+├── 📁 js/ → Lógica del cliente (fetch, JWT, manejo del DOM)
+├── index.html → Página principal
+└── README.md
+
+yaml
+Copiar código
+
+---
+
+## 🚀 Ejecución Local
+
+### 1️⃣ Requisitos Previos
+- Tener el **RANKING_SYSTEM_BACKEND** ejecutándose en:  
+  `http://localhost:4000/api/v1`
+
+### 2️⃣ Clonar el Repositorio
 
 ```bash
 git clone https://github.com/Kevinlevin200/RANKING_SYSTEM_FRONTEND.git
 cd RANKING_SYSTEM_FRONTEND
-```
+3️⃣ Iniciar Servidor Local
+Recomendado: Extensión Live Server (VS Code).
 
-### 3\. Ejecutar el Frontend
+Alternativo: python3 -m http.server 5500.
 
-Dado que es una aplicación de *Vanilla JS*, solo necesitas un servidor web simple para evitar problemas de CORS y cargar el contenido localmente.
+Directo: abrir index.html (⚠️ puede causar errores CORS).
 
-  * **Opción Recomendada:** Usar una extensión como **Live Server** en VS Code.
-  * **Opción Alternativa:** Abre `index.html` directamente en tu navegador.
+💡 Verifica que las URLs base en los archivos js/ apunten correctamente al backend.
 
-> **Importante:** Asegúrate de que todas las llamadas `fetch` en los archivos `js/` apunten a la URL base correcta del *backend* (`http://localhost:4000/api/v1` para desarrollo).
+🌐 Integración con la API (Backend)
+El frontend se comunica con la API REST del backend:
 
-## 🌐 Consumo de API (Endpoints del Backend)
+bash
+Copiar código
+BASE_URL = http://localhost:4000/api/v1
+🔒 Usuarios y Autenticación
+Acción	Método	Endpoint	Autenticación
+Registro	POST	/usuarios/registrar	Pública
+Login	POST	/usuarios/login	Pública
+Verificar Sesión	GET	/usuarios/verificar-sesion	JWT
+Cambiar Contraseña	PATCH	/usuarios/cambiar-contraseña	JWT
 
-El *frontend* se comunica con la API REST del *backend*, cuya documentación completa es la **Ranking System API**. La URL base para todas las peticiones es `http://localhost:4000/api/v1`.
+🍽️ Restaurantes y Platos
+Acción	Método	Endpoint	Parámetros
+Listar Restaurantes	GET	/restaurantes	—
+Restaurante por ID	GET	/restaurantes/{id}	:id
+Listar Platos	GET	/platos	—
+Platos por Restaurante	GET	/platos/restaurante/{restauranteId}	:restauranteId
 
-### 🔒 Servicios de Usuarios y Autenticación
+⭐ Reseñas e Interacciones
+Acción	Método	Endpoint	Autenticación
+Crear Reseña	POST	/resena/registrar	JWT
+Reseñas del Usuario	GET	/resena/usuario/{usuarioId}	JWT
+Like	POST	/resena/{id}/like	JWT
+Dislike	POST	/resena/{id}/dislike	JWT
 
-| Funcionalidad | Método | Ruta Completa | Seguridad |
-| :--- | :--- | :--- | :--- |
-| **Registro** | `POST` | `/api/v1/usuarios/registrar` | Pública |
-| **Login** | `POST` | `/api/v1/usuarios/login` | Pública |
-| **Verificar Sesión** | `GET` | `/api/v1/usuarios/verificar-sesion` | **Requiere JWT** |
-| **Cambiar Contraseña** | `PATCH` | `/api/v1/usuarios/cambiar-contraseña` | **Requiere JWT** |
+📊 Ranking y Consultas
+Acción	Método	Endpoint	Parámetros
+Ranking General	GET	/ranking/ranking	—
+Ranking por Categoría	GET	/ranking/categoria/{categoria}	:categoria
+Detalle de Restaurante	GET	/ranking/detalle/{id}	:id
 
-### 📊 Servicios de Ranking y Consulta
+🧑‍💼 Funciones Administrativas
+Acción	Método	Endpoint	Rol
+Registrar Categoría	POST	/categoria/registrar	Admin
+Registrar Plato	POST	/platos/registrar	Admin
+Modificar Restaurante	PATCH	/restaurantes/{id}	Admin
+Eliminar Restaurante	DELETE	/restaurantes/{id}	Admin
 
-El Ranking es la funcionalidad principal, permitiendo mostrar los resultados ordenados.
+📘 Documentación y Recursos
+📄 Swagger UI: API Docs Local
 
-| Funcionalidad | Método | Ruta Completa | Parámetros |
-| :--- | :--- | :--- | :--- |
-| **Ranking General** | `GET` | `/api/v1/ranking/ranking` | Ninguno |
-| **Ranking por Categoría** | `GET` | `/api/v1/ranking/categoria/{categoria}` | `:categoria` (en ruta) |
-| **Detalle de Restaurante** | `GET` | `/api/v1/ranking/detalle/{id}` | `:id` (ID del restaurante en ruta) |
+🖥️ Repositorio Backend: RANKING_SYSTEM_BACKEND
 
-### 🍽️ Servicios de Restaurantes y Platos (Consulta Pública)
+💾 Base de Datos: MongoDB Atlas
 
-| Funcionalidad | Método | Ruta Completa | Parámetros |
-| :--- | :--- | :--- | :--- |
-| **Listar Restaurantes** | `GET` | `/api/v1/restaurantes` | Ninguno |
-| **Obtener Restaurante por ID** | `GET` | `/api/v1/restaurantes/{id}` | `:id` (en ruta) |
-| **Listar Platos** | `GET` | `/api/v1/platos` | Ninguno |
-| **Listar Platos por Restaurante** | `GET` | `/api/v1/platos/restaurante/{restauranteId}` | `:restauranteId` (en ruta) |
+⚙️ Lenguaje Backend: Node.js con Express y MongoDB Driver
 
-### ⭐ Servicios de Reseñas e Interacción
 
-| Funcionalidad | Método | Ruta Completa | Seguridad |
-| :--- | :--- | :--- | :--- |
-| **Crear Reseña** | `POST` | `/api/v1/resena/registrar` | **Requiere JWT** |
-| **Listar Reseñas de Usuario** | `GET` | `/api/v1/resena/usuario/{usuarioId}` | **Requiere JWT** |
-| **Dar Like a Reseña** | `POST` | `/api/v1/resena/{id}/like` | **Requiere JWT** |
-| **Dar Dislike a Reseña** | `POST` | `/api/v1/resena/{id}/dislike` | **Requiere JWT** |
 
-### ➕ Servicios Administrativos y de Gestión (Requieren JWT)
 
-El *frontend* también puede interactuar con endpoints de gestión, típicamente para usuarios con rol `admin`.
 
-| Funcionalidad | Método | Ruta Completa |
-| :--- | :--- | :--- |
-| **Registrar Categoría** | `POST` | `/api/v1/categoria/registrar` |
-| **Registrar Plato** | `POST` | `/api/v1/platos/registrar` |
-| **Modificar Restaurante** | `PATCH` | `/api/v1/restaurantes/{id}` |
-| **Eliminar Restaurante** | `DELETE` | `/api/v1/restaurantes/{id}` |
+> Autores: 
+- juan camilo rojas arenas
+- kevin santiago rivero rueda
+- connie tatiana carrillo bohorquez
