@@ -1,4 +1,4 @@
-const API_BASE = "https://ranking-system-backend.onrender.com";
+const API_BASE = "https://ranking-system-backend.onrender.com/api/v1";
 
 console.log("🚀 login.js cargado");
 
